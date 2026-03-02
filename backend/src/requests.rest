@@ -1,0 +1,57 @@
+POST http://localhost:3001/api/users/register
+Content-Type: application/json
+
+{
+    "username": "cony",
+    "password": "password123"
+}
+
+###
+GET http://localhost:3001/api/users/1
+
+###
+POST http://localhost:3001/api/diagrams/upload
+Content-Type: application/json
+
+{
+    "user_id": 1,
+    "name": "Diagrama de Clases Memoria",
+    "content": { 
+        "nodes": [
+            {
+                "id": "1", 
+                "name": "Usuario", 
+                "classType": "concreteClass", 
+                "methods": [
+                    {"name": "getUsername", "returnType": "string"}
+                ], 
+                "fields": [
+                    {"name": "username", "fieldType": "string"}
+                ],
+                "x": 100, 
+                "y": 150
+            },
+            {
+                "id": "2", 
+                "name": "Diagrama", 
+                "classType": "concreteClass", 
+                "methods": [], 
+                "fields": [],
+                "x": 400, 
+                "y": 150
+            }
+        ], 
+        "edges": [
+            {
+                "source": "1", 
+                "target": "2", 
+                "type": "association",
+                "sourceHandle": "right",
+                "targetHandle": "left"
+            }
+        ] 
+    }
+}
+
+###
+GET http://localhost:3001/api/diagrams/1
