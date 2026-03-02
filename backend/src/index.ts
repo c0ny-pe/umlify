@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
-import pool from "./db";
+import userRoutes from "./routes/userRoutes";
+import diagramRoutes from "./routes/diagramRoutes";
 
 const app = express();
 
@@ -19,6 +20,9 @@ const requestLogger = (
 };
 
 app.use(requestLogger);
+
+app.use("/api/users", userRoutes);
+app.use("/api/diagrams", diagramRoutes);
 
 const unknownEndpoint = (_request: Request, response: Response) => {
     response.status(404).send({ error: "unknown endpoint" });
