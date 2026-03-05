@@ -55,3 +55,69 @@ Content-Type: application/json
 
 ###
 GET http://localhost:3001/api/diagrams/1
+
+###
+POST http://localhost:3001/api/generator
+Content-Type: application/json
+
+{
+    "nodes": [
+        {
+            "id": "1",
+            "name": "IName",
+            "classType": "trait",
+            "methods": [],
+            "fields": [],
+            "x": 639,
+            "y": 178
+        },
+        {
+            "id": "2",
+            "name": "Name",
+            "classType": "concreteClass",
+            "methods": [
+                {
+                    "name": "methodName",
+                    "domType": [],
+                    "codType": "Int",
+                    "visibility": "public",
+                    "abstract": true
+                }
+            ],
+            "fields": [
+                {
+                    "name": "fieldName",
+                    "type": "String",
+                    "visibility": "protected"
+                }
+            ],
+            "x": 986,
+            "y": 193
+        },
+        {
+            "id": "3",
+            "name": "AbstractName",
+            "classType": "abstractClass",
+            "methods": [],
+            "fields": [],
+            "x": 641,
+            "y": 363
+        }
+    ],
+    "edges": [
+        {
+            "source": "2",
+            "target": "3",
+            "sourceHandle": "top-handle-1",
+            "targetHandle": "right-handle-1",
+            "type": "inheritance"
+        },
+        {
+            "source": "3",
+            "target": "1",
+            "sourceHandle": "top-handle-2",
+            "targetHandle": "bottom-handle-2",
+            "type": "implementation"
+        }
+    ]
+}

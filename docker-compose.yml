@@ -15,7 +15,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - DB_HOST=postgres # en el .env es localhost...
+      - DB_HOST=postgres
       - DB_PORT=${PG_PORT}
       - DB_USER=${PG_USER}
       - DB_PASSWORD=${PG_PASSWORD}
