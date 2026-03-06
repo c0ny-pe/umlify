@@ -64,6 +64,117 @@ Content-Type: application/json
     "nodes": [
         {
             "id": "1",
+            "name": "Shape",
+            "classType": "trait",
+            "methods": [
+                {
+                    "name": "area",
+                    "domType": [],
+                    "codType": "Double",
+                    "visibility": "public",
+                    "abstract": false
+                },
+                {
+                    "name": "perimeter",
+                    "domType": [],
+                    "codType": "Double",
+                    "visibility": "public",
+                    "abstract": false
+                }
+            ],
+            "fields": [],
+            "x": 478,
+            "y": 257
+        },
+        {
+            "id": "2",
+            "name": "Circle",
+            "classType": "concreteClass",
+            "methods": [
+                {
+                    "name": "area",
+                    "domType": [],
+                    "codType": "Double",
+                    "visibility": "public",
+                    "abstract": false
+                },
+                {
+                    "name": "perimeter",
+                    "domType": [],
+                    "codType": "Double",
+                    "visibility": "public",
+                    "abstract": false
+                }
+            ],
+            "fields": [
+                {
+                    "name": "radius",
+                    "type": "Double",
+                    "visibility": "public"
+                }
+            ],
+            "x": 774.7468166067184,
+            "y": 127.86367211485936
+        },
+        {
+            "id": "3",
+            "name": "Rectangle",
+            "classType": "concreteClass",
+            "methods": [
+                {
+                    "name": "area",
+                    "domType": [],
+                    "codType": "Double",
+                    "visibility": "public",
+                    "abstract": false
+                },
+                {
+                    "name": "perimeter",
+                    "domType": [],
+                    "codType": "Double",
+                    "visibility": "public",
+                    "abstract": false
+                }
+            ],
+            "fields": [
+                {
+                    "name": "width",
+                    "type": "Double",
+                    "visibility": "public"
+                },
+                {
+                    "name": "height",
+                    "type": "Double",
+                    "visibility": "public"
+                }
+            ],
+            "x": 920.6644203987088,
+            "y": 473.7183520758398
+        }
+    ],
+    "edges": [
+        {
+            "source": "3",
+            "target": "1",
+            "sourceHandle": "top-handle-2",
+            "targetHandle": "bottom-handle-2",
+            "type": "implementation"
+        },
+        {
+            "source": "2",
+            "target": "1",
+            "sourceHandle": "left-handle-2",
+            "targetHandle": "right-handle-2",
+            "type": "implementation"
+        }
+    ]
+}
+
+###
+{
+    "nodes": [
+        {
+            "id": "1",
             "name": "IName",
             "classType": "trait",
             "methods": [],
