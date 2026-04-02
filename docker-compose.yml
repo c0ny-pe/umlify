@@ -15,11 +15,11 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=${PG_PORT}
-      - DB_USER=${PG_USER}
-      - DB_PASSWORD=${PG_PASSWORD}
-      - DB_NAME=${PG_DATABASE}
+      - PGHOST=postgres
+      - PGPORT=${PG_PORT}
+      - PGUSER=${PG_USER}
+      - PGPASSWORD=${PG_PASSWORD}
+      - PGDATABASE=${PG_DATABASE}
     depends_on:
       - postgres
     restart: unless-stopped
