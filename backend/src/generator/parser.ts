@@ -1,38 +1,28 @@
-// transformo un Diagram en un DiagramModel
+// transformo un JSONDiagram en un DiagramModel
 
-import { ClassNode, DiagramModel, Edge, Method, Node, RawDiagram, Relation } from "../types/generator";
+import { Class, DiagramModel, JSONDiagram, JSONEdge, JSONNode, Relation } from "../types/generator";
 
-export function parseDiagram(diagram: RawDiagram): DiagramModel {
-    const classes = diagram.nodes.map(n => parseClass(n));
-    const relations = diagram.edges.map(e => parseEdge(e));
+export function parseDiagram(diagram: JSONDiagram): DiagramModel {
+    const classes = diagram.nodes.map((node) => parseClass(node));
+    const relations = diagram.edges.map((edge) => parseEdge(edge));
 
     return { classes, relations };
 }
 
-function parseClass(classNode: Node): ClassNode {
-    const methods: Method[] = classNode.methods.map(m => ({
-        name: m.name,
-        params: m.domType.map((d, idx) => ({
-            name: `param${idx}`,
-            paramType: d,
-        })),
-        returnType: m.codType,
-        visibility: m.visibility
-    }));
-
+function parseClass(classNode: JSONNode): Class {
     return {
         id: classNode.id,
         name: classNode.name,
         classType: classNode.classType,
         fields: classNode.fields,
-        methods
+        methods: classNode.methods,
     };
 }
 
-function parseEdge(edge: Edge): Relation {
+function parseEdge(edge: JSONEdge): Relation {
     return {
-        sourceId: edge.source,
-        targetId: edge.target,
-        relationType: edge.type
+        source: edge.source,
+        target: edge.target,
+        type: edge.type,
     };
 }

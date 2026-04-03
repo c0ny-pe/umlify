@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import { RawDiagram } from '../types/generator';
+import { JSONDiagram } from '../types/generator';
 import { parseDiagram } from '../generator/parser';
 import { generateScalaCode } from '../generator/generator';
 
 export async function generateCode(req: Request, res: Response) {
-    const diagram = req.body as RawDiagram;
+    const diagram = req.body as JSONDiagram;
 
     if (!diagram.nodes || !diagram.edges) {
         res.status(400).json({ error: 'El diagrama debe contener nodos y aristas' });
@@ -15,7 +15,7 @@ export async function generateCode(req: Request, res: Response) {
         const model = parseDiagram(diagram);
         const code = generateScalaCode(model);
 
-        res.setHeader('Content-Type', 'text/x-scala');
+        res.type('text/plain; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="diagram.scala"');
         res.status(200).send(code);
     } catch (err) {

@@ -1,7 +1,9 @@
-import { ClassNode, ClassRelations, DiagramModel, Param, Relation } from "../types/generator";
+import { Class, ClassRelations, DiagramModel, Relation } from "../types/generator";
 
-function formatParams(params: Param[]): string {
-    return params.map(p => `${p.name}: ${p.paramType}`).join(", ");
+function formatParams(params: string[]): string {
+    return params
+        .map((type, index) => `param${index}: ${type}`)
+        .join(", ");
 }
 
 function indent(lines: string[], spaces = 2): string[] {
@@ -9,7 +11,7 @@ function indent(lines: string[], spaces = 2): string[] {
     return lines.map((l) => (l === "" ? "" : `${pad}${l}`));
 }
 
-function createRelationsMap(classes: ClassNode[], relations: Relation[]) {
+function createRelationsMap(classes: Class[], relations: Relation[]) {
     const idtoClass = new Map(classes.map(c => [c.id, c]));
     const relationsMap = new Map<string, ClassRelations>();
 
@@ -20,11 +22,11 @@ function createRelationsMap(classes: ClassNode[], relations: Relation[]) {
 
     // los rellenamos
     relations.forEach(r => {
-        const sourceRel = relationsMap.get(r.sourceId);
-        const targetClass = idtoClass.get(r.targetId);
+        const sourceRel = relationsMap.get(r.source);
+        const targetClass = idtoClass.get(r.target);
         if (!sourceRel || !targetClass) return;
 
-        switch (r.relationType) {
+        switch (r.type) {
             case "inheritance":
                 sourceRel.extendsClass = targetClass.name;
                 break;
@@ -46,7 +48,10 @@ function createRelationsMap(classes: ClassNode[], relations: Relation[]) {
     return relationsMap;
 }
 
-function createClassHeader(cls: ClassNode, rel: ClassRelations): string {
+// TODO: Ver caso Trait
+
+// TODO: distintas funciones para clases e traits
+function createClassHeader(cls: Class, rel: ClassRelations): string {
     const fields = cls.fields.map(f => `${f.visibility === "public" ? "" : f.visibility + " "}val ${f.name}: ${f.type}`);
     const constructorParams = fields.length ? `(${fields.join(", ")})` : "";
 
@@ -58,8 +63,10 @@ function createClassHeader(cls: ClassNode, rel: ClassRelations): string {
     }
 
     const params = cls.classType === "trait" ? "" : constructorParams;
+    // TODO: debería agregarlos abajo como val si es trait
 
     let inheritance = "";
+    // TODO: ver caso trait que extiende de 2 traits
     if (rel.extendsClass) inheritance += ` extends ${rel.extendsClass}`;
     if (rel.withTraits.length) {
         const k = rel.extendsClass ? "with" : "extends";
@@ -69,7 +76,7 @@ function createClassHeader(cls: ClassNode, rel: ClassRelations): string {
     return `${keyword} ${cls.name}${params}${inheritance} {`;
 }
 
-function createClassBody(cls: ClassNode, rel: ClassRelations): string[] {
+function createClassBody(cls: Class, rel: ClassRelations): string[] {
     const body: string[] = [];
 
     rel.associations.forEach(a => body.push(`val ${a.toLowerCase()}: ${a} = ???`));
@@ -77,7 +84,8 @@ function createClassBody(cls: ClassNode, rel: ClassRelations): string[] {
     if (rel.associations.length && cls.methods.length) body.push("");
 
     cls.methods.forEach(m => {
-        const signature = `def ${m.name}(${formatParams(m.params)}): ${m.returnType === "" ? "Unit" : m.returnType}`;
+        const returnType = m.codType && m.codType.trim().length > 0 ? m.codType : "Unit";
+        const signature = `def ${m.name}(${formatParams(m.domType)}): ${returnType}`;
         if (cls.classType === "trait" || cls.classType === "abstractClass") {
             body.push(signature);
         } else {
@@ -88,7 +96,7 @@ function createClassBody(cls: ClassNode, rel: ClassRelations): string[] {
     return body;
 }
 
-function createClass(cls: ClassNode, rel: ClassRelations): string {
+function createClass(cls: Class, rel: ClassRelations): string {
     const header = createClassHeader(cls, rel);
     const body = createClassBody(cls, rel);
 

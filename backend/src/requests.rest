@@ -82,7 +82,11 @@ Content-Type: application/json
                     "abstract": false
                 }
             ],
-            "fields": [],
+            "fields": [{
+                    "name": "width",
+                    "type": "Double",
+                    "visibility": "public"
+                }],
             "x": 478,
             "y": 257
         },
