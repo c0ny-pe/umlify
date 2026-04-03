@@ -6,11 +6,6 @@ import { generateScalaCode } from '../generator/generator';
 export async function generateCode(req: Request, res: Response) {
     const diagram = req.body as JSONDiagram;
 
-    if (!diagram.nodes || !diagram.edges) {
-        res.status(400).json({ error: 'El diagrama debe contener nodos y aristas' });
-        return;
-    }
-
     try {
         const model = parseDiagram(diagram);
         const code = generateScalaCode(model);

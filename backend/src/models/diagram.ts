@@ -1,15 +1,18 @@
 import pool from '../db';
+import type { DiagramPayload } from '../schemas/diagramSchemas';
 
 export interface Method {
   name: string;
-  returnType: string;
-  visibility?: 'public' | 'protected' | 'private';
+  domType: string[];
+  codType: string;
+  visibility: 'public' | 'protected' | 'private';
+  abstract: boolean;
 }
 
 export interface Field {
   name: string;
-  fieldType: string;
-  visibility?: 'public' | 'protected' | 'private';
+  type: string;
+  visibility: 'public' | 'protected' | 'private';
 }
 
 export interface Node {
@@ -25,14 +28,14 @@ export interface Node {
 export interface Edge {
   source: string;
   target: string;
-  sourceHandle?: string;
-  targetHandle?: string;
-  type: 'association' | 'implementation' | 'generalization' | 'dependency' | string;
+  sourceHandle: string;
+  targetHandle: string;
+  type: 'aggregation' | 'association' | 'composition' | 'dependency' | 'implementation' | 'inheritance';
 }
 
 export interface DiagramContent {
-  nodes: Node[];
-  edges: Edge[];
+  nodes: DiagramPayload['nodes'];
+  edges: DiagramPayload['edges'];
 }
 
 export interface Diagram {
