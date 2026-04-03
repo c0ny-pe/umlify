@@ -2,15 +2,20 @@ import { Edge, ReactFlowInstance } from "@xyflow/react";
 import UMLNode, { FieldType, MethodType } from "../model/UMLNode";
 import React, { useState, useRef } from "react";
 import useCanvasRightClick from "./useCanvasRightClick";
+import { getUniqueName } from "../utils/nodeName";
 
 type GlobalContext = {
   DEFAULT_NODE_NAME: string;
   DEFAULT_NODE_FIELDS: FieldType[];
   DEFAULT_NODE_METHODS: MethodType[];
   nodes: UMLNode[];
+  nodeNames: string[];
   setNodes: React.Dispatch<React.SetStateAction<UMLNode[]>>;
+  setNodeNames: React.Dispatch<React.SetStateAction<string[]>>;
   getNodes: () => UMLNode[];
   generateNodeId: () => number;
+  setNextNodeId: (nextNodeId: number) => void;
+  getUniqueNodeName: (baseName: string, excludedName?: string) => string;
   edges: Edge[];
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
   rightClicked: boolean;
@@ -46,14 +51,44 @@ const useGlobalContext = (): GlobalContext => {
   const DEFAULT_NODE_METHODS: MethodType[] = [];
 
   const [nodes, setNodes] = useState<UMLNode[]>(INITIAL_NODES);
+  const [nodeNames, setNodeNames] = useState<string[]>(
+    INITIAL_NODES.map((node) => node.name)
+  );
   const [edges, setEdges] = useState<Edge[]>(INITIAL_EDGES);
+  const nextNodeIdRef = useRef<number>(1);
 
   const getNodes = () => {
     return nodes;
   };
 
   const generateNodeId = () => {
-    return nodes.length + 1;
+    const nextNodeId = nextNodeIdRef.current;
+    nextNodeIdRef.current += 1;
+    return nextNodeId;
+  };
+
+  const setNextNodeId = (nextNodeId: number) => {
+    nextNodeIdRef.current = nextNodeId;
+  };
+
+  const doesNodeNameExist = (name: string, excludedName?: string) => {
+    const normalizedName = name.trim().toLowerCase();
+
+    return nodeNames.some((nodeName) => {
+      if (excludedName && nodeName.trim().toLowerCase() === excludedName.trim().toLowerCase()) {
+        return false;
+      }
+
+      return nodeName.trim().toLowerCase() === normalizedName;
+    });
+  };
+
+  const getUniqueNodeName = (baseName: string, excludedName?: string) => {
+    const usedNames = excludedName
+      ? nodeNames.filter((name) => name !== excludedName)
+      : nodeNames;
+
+    return getUniqueName(baseName, usedNames, DEFAULT_NODE_NAME);
   };
 
   // Allows me to disable the context menu in some components
@@ -77,9 +112,13 @@ const useGlobalContext = (): GlobalContext => {
     DEFAULT_NODE_FIELDS,
     DEFAULT_NODE_METHODS,
     nodes,
+    nodeNames,
     setNodes,
+    setNodeNames,
     getNodes,
     generateNodeId,
+    setNextNodeId,
+    getUniqueNodeName,
     edges,
     setEdges,
     rightClicked,

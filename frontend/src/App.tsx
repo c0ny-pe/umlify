@@ -25,6 +25,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ContextMenu from "./styles/menu";
 
 import StyledNode from "./components/nodes/StyledNode";
@@ -43,6 +44,10 @@ import ConcreteClass from "./model/ConcreteClass";
 import ExportButton from "./components/ExportButton";
 import DownloadJSON from "./components/DownloadJSON";
 import UploadJSON from "./components/UploadJSON";
+import { Button } from "@mui/material";
+// import NavBar from "./components/NavBar";
+// import Login from "./components/pages/Login";
+// import SignUp from "./components/pages/Signup";
 
 function App() {
   const ctx: GlobalContext = useGlobalContext();
@@ -94,8 +99,13 @@ function App() {
 
         return newNodes;
       });
+
+      ctx.setNodeNames((names) => {
+        const deletedNames = new Set(deleted.map((node) => node.data?.name));
+        return names.filter((name) => !deletedNames.has(name));
+      });
     },
-    [ctx.nodes, ctx.edges]
+    [ctx.setNodes, ctx.setNodeNames]
   );
 
   /**
@@ -259,7 +269,13 @@ function App() {
     ctx: GlobalContext,
     props: NodeProps<CustomNode>
   ) => (
-    <StyledNode setNodes={ctx.setNodes} setEdges={ctx.setEdges} node={props} />
+    <StyledNode
+      setNodes={ctx.setNodes}
+      setNodeNames={ctx.setNodeNames}
+      setEdges={ctx.setEdges}
+      node={props}
+      getUniqueNodeName={ctx.getUniqueNodeName}
+    />
   );
 
   function CustomNodeTypes(ctx: GlobalContext): NodeTypes {
@@ -294,113 +310,148 @@ function App() {
   }
 
   return (
-    <div
-      ref={ctx.reactFlowWrapper}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        ctx.setRightClicked(true);
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={
 
-        const reactFlowBounds =
-          ctx.reactFlowWrapper.current?.getBoundingClientRect();
+          <div
+            ref={ctx.reactFlowWrapper}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              ctx.setRightClicked(true);
 
-        if (!ctx.reactFlowInstance || !reactFlowBounds) {
-          return;
-        }
+              const reactFlowBounds =
+                ctx.reactFlowWrapper.current?.getBoundingClientRect();
 
-        const position = ctx.reactFlowInstance.screenToFlowPosition({
-          x: e.clientX - reactFlowBounds.left,
-          y: e.clientY - reactFlowBounds.top,
-        });
+              if (!ctx.reactFlowInstance || !reactFlowBounds) {
+                return;
+              }
 
-        ctx.setRelativeMouseCoordinate(position);
-        ctx.setMouseCoordinate({ x: e.clientX, y: e.clientY });
-      }}
-      style={{ height: "100%" }}
-    >
-      <>
-        {ctx.rightClicked && ctx.isMenuContextActive && (
-          <ContextMenu top={ctx.mouseCoordinate.y} left={ctx.mouseCoordinate.x}>
+              const position = ctx.reactFlowInstance.screenToFlowPosition({
+                x: e.clientX - reactFlowBounds.left,
+                y: e.clientY - reactFlowBounds.top,
+              });
+
+              ctx.setRelativeMouseCoordinate(position);
+              ctx.setMouseCoordinate({ x: e.clientX, y: e.clientY });
+            }}
+            style={{ height: "100%" }}
+          >
             <>
-              <ul>
-                <li
-                  onClick={() => {
-                    ctx.setNodes((oldNodes) => {
-                      const newNode = new Trait(
-                        ctx.generateNodeId(),
-                        ctx.DEFAULT_NODE_NAME,
-                        ctx.DEFAULT_NODE_METHODS,
-                        ctx.DEFAULT_NODE_FIELDS,
-                        ctx.relativeMouseCoordinate.x,
-                        ctx.relativeMouseCoordinate.y
-                      );
-                      return [...oldNodes, newNode];
-                    });
-                  }}
-                >
-                  Add Trait
-                </li>
-                <li
-                  onClick={() => {
-                    ctx.setNodes((oldNodes) => {
-                      const newNode = new AbstractClass(
-                        ctx.generateNodeId(),
-                        ctx.DEFAULT_NODE_NAME,
-                        ctx.DEFAULT_NODE_METHODS,
-                        ctx.DEFAULT_NODE_FIELDS,
-                        ctx.relativeMouseCoordinate.x,
-                        ctx.relativeMouseCoordinate.y
-                      );
-                      return [...oldNodes, newNode];
-                    });
-                  }}
-                >
-                  Add Abstract Class
-                </li>
-                <li
-                  onClick={() => {
-                    ctx.setNodes((oldNodes) => {
-                      const newNode = new ConcreteClass(
-                        ctx.generateNodeId(),
-                        ctx.DEFAULT_NODE_NAME,
-                        ctx.DEFAULT_NODE_METHODS,
-                        ctx.DEFAULT_NODE_FIELDS,
-                        ctx.relativeMouseCoordinate.x,
-                        ctx.relativeMouseCoordinate.y
-                      );
-                      return [...oldNodes, newNode];
-                    });
-                  }}
-                >
-                  Add Concrete Class
-                </li>
-              </ul>
-            </>
-          </ContextMenu>
-        )}
+              {/* <NavBar /> */}
+              {ctx.rightClicked && ctx.isMenuContextActive && (
+                <ContextMenu top={ctx.mouseCoordinate.y} left={ctx.mouseCoordinate.x}>
+                  <>
+                    <ul>
+                      <li
+                        onClick={() => {
+                          const uniqueName = ctx.getUniqueNodeName(
+                            ctx.DEFAULT_NODE_NAME
+                          );
 
-        <ReactFlow
-          nodes={ctx.nodes.map((n) => n.getNode())}
-          edges={ctx.edges}
-          nodeTypes={CustomNodeTypes(ctx)}
-          edgeTypes={CustomEdgeTypes(ctx.setEdges)}
-          onNodesChange={onNodesChange}
-          onNodesDelete={onNodesDelete}
-          onEdgesChange={onEdgesChange}
-          onInit={ctx.setReactFlowInstance}
-          onConnectEnd={onConnectEnd}
-          connectionMode={ConnectionMode.Loose}
-          fitView={false}
-        >
-          <Panel style={{ backgroundColor: "white" }} position="top-right">
-            <UploadJSON setNodes={ctx.setNodes} setEdges={ctx.setEdges} />
-            <DownloadJSON nodes={ctx.nodes} edges={ctx.edges} />
-            <ExportButton nodes={ctx.nodes.map((n) => n.getNode())} />
-          </Panel>
-          <Background />
-          <Controls />
-        </ReactFlow>
-      </>
-    </div>
+                          ctx.setNodes((oldNodes) => {
+                            const newNode = new Trait(
+                              ctx.generateNodeId(),
+                              uniqueName,
+                              ctx.DEFAULT_NODE_METHODS,
+                              ctx.DEFAULT_NODE_FIELDS,
+                              ctx.relativeMouseCoordinate.x,
+                              ctx.relativeMouseCoordinate.y
+                            );
+                            return [...oldNodes, newNode];
+                          });
+
+                          ctx.setNodeNames((oldNames) => [...oldNames, uniqueName]);
+                        }}
+                      >
+                        Add Trait
+                      </li>
+                      <li
+                        onClick={() => {
+                          const uniqueName = ctx.getUniqueNodeName(
+                            ctx.DEFAULT_NODE_NAME
+                          );
+
+                          ctx.setNodes((oldNodes) => {
+                            const newNode = new AbstractClass(
+                              ctx.generateNodeId(),
+                              uniqueName,
+                              ctx.DEFAULT_NODE_METHODS,
+                              ctx.DEFAULT_NODE_FIELDS,
+                              ctx.relativeMouseCoordinate.x,
+                              ctx.relativeMouseCoordinate.y
+                            );
+                            return [...oldNodes, newNode];
+                          });
+
+                          ctx.setNodeNames((oldNames) => [...oldNames, uniqueName]);
+                        }}
+                      >
+                        Add Abstract Class
+                      </li>
+                      <li
+                        onClick={() => {
+                          const uniqueName = ctx.getUniqueNodeName(
+                            ctx.DEFAULT_NODE_NAME
+                          );
+
+                          ctx.setNodes((oldNodes) => {
+                            const newNode = new ConcreteClass(
+                              ctx.generateNodeId(),
+                              uniqueName,
+                              ctx.DEFAULT_NODE_METHODS,
+                              ctx.DEFAULT_NODE_FIELDS,
+                              ctx.relativeMouseCoordinate.x,
+                              ctx.relativeMouseCoordinate.y
+                            );
+                            return [...oldNodes, newNode];
+                          });
+
+                          ctx.setNodeNames((oldNames) => [...oldNames, uniqueName]);
+                        }}
+                      >
+                        Add Concrete Class
+                      </li>
+                    </ul>
+                  </>
+                </ContextMenu>
+              )}
+
+              <ReactFlow
+                nodes={ctx.nodes.map((n) => n.getNode())}
+                edges={ctx.edges}
+                nodeTypes={CustomNodeTypes(ctx)}
+                edgeTypes={CustomEdgeTypes(ctx.setEdges)}
+                onNodesChange={onNodesChange}
+                onNodesDelete={onNodesDelete}
+                onEdgesChange={onEdgesChange}
+                onInit={ctx.setReactFlowInstance}
+                onConnectEnd={onConnectEnd}
+                connectionMode={ConnectionMode.Loose}
+                fitView={false}
+              >
+                <Panel style={{ backgroundColor: "white" }} position="top-right">
+                  <UploadJSON
+                    setNodes={ctx.setNodes}
+                    setNodeNames={ctx.setNodeNames}
+                    setNextNodeId={ctx.setNextNodeId}
+                    setEdges={ctx.setEdges}
+                  />
+                  <DownloadJSON nodes={ctx.nodes} edges={ctx.edges} />
+                  <ExportButton nodes={ctx.nodes.map((n) => n.getNode())} />
+                  <Button>Log in</Button>
+                  <Button style={{ backgroundColor: 'blue', color: 'white' }}>Sign up</Button>
+                </Panel>
+                <Background />
+                <Controls />
+              </ReactFlow>
+            </>
+          </div>
+        } />
+        {/* <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} /> */}
+      </Routes>
+    </BrowserRouter>
   );
 }
 

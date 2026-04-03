@@ -11,8 +11,10 @@ import "../styles/containers.css";
 
 type StyledNodeProps = {
   setNodes: Dispatch<SetStateAction<UMLNode[]>>;
+  setNodeNames: Dispatch<SetStateAction<string[]>>;
   setEdges: Dispatch<SetStateAction<Edge[]>>;
   node: NodeProps<CustomNode>;
+  getUniqueNodeName: (baseName: string, excludedName?: string) => string;
 };
 
 /**
@@ -24,7 +26,7 @@ type StyledNodeProps = {
  * @author Máximo Flores Valenzuela <https://github.com/maxfloresv>
  */
 const StyledNode = (props: StyledNodeProps): JSX.Element => {
-  const { setNodes, setEdges, node } = props;
+  const { setNodes, setNodeNames, setEdges, node, getUniqueNodeName } = props;
   const { data } = node;
   /** Defines the handles for each side of the node */
   const LEFT_RIGHT_HANDLES = 3;
@@ -162,6 +164,8 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
             node={node}
             setEdges={setEdges}
             setEditMode={setEditMode}
+            setNodeNames={setNodeNames}
+            getUniqueNodeName={getUniqueNodeName}
           />
 
           <NodeFields

@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Edge, NodeProps } from "@xyflow/react";
 import UMLNode, { CustomNode, CustomNodeData } from "../../model/UMLNode";
 
@@ -26,9 +26,11 @@ type NodeHeaderProps = {
   editMode: boolean;
   setEditMode: Dispatch<SetStateAction<boolean>>;
   setNodes: Dispatch<SetStateAction<UMLNode[]>>;
+  setNodeNames: Dispatch<SetStateAction<string[]>>;
   setEdges: Dispatch<SetStateAction<Edge[]>>;
   forceUpdate: () => void;
   mouseHover: boolean;
+  getUniqueNodeName: (baseName: string, excludedName?: string) => string;
 };
 
 const NodeHeader = (props: NodeHeaderProps) => {
@@ -38,10 +40,18 @@ const NodeHeader = (props: NodeHeaderProps) => {
     editMode,
     setEditMode,
     setNodes,
+    setNodeNames,
     setEdges,
     forceUpdate,
     mouseHover,
+    getUniqueNodeName,
   } = props;
+
+  const [nameInput, setNameInput] = useState(data.name);
+
+  useEffect(() => {
+    setNameInput(data.name);
+  }, [data.name, editMode]);
 
   return (
     <>
@@ -59,16 +69,40 @@ const NodeHeader = (props: NodeHeaderProps) => {
                 sx={{ width: "100%" }}
                 label="Class Name"
                 variant="standard"
-                defaultValue={data.name}
+                value={nameInput}
                 size="small"
                 onChange={(e) => {
+                  setNameInput(e.target.value);
+                }}
+                onBlur={() => {
+                  const uniqueName = getUniqueNodeName(nameInput, data.name);
                   setNodes((oldNodes) => {
                     const [retrievedNode] = oldNodes.filter(
                       (n: UMLNode) => n.id === data.id
                     );
-                    retrievedNode.updateName(e.target.value);
+
+                    if (!retrievedNode) {
+                      return oldNodes;
+                    }
+
+                    retrievedNode.updateName(uniqueName);
                     return [...oldNodes];
                   });
+
+                  setNodeNames((oldNames) => {
+                    const nextNames = [...oldNames];
+                    const currentIndex = nextNames.findIndex(
+                      (name) => name === data.name
+                    );
+
+                    if (currentIndex !== -1) {
+                      nextNames[currentIndex] = uniqueName;
+                    }
+
+                    return nextNames;
+                  });
+
+                  setNameInput(uniqueName);
                   forceUpdate();
                 }}
               />
@@ -180,6 +214,21 @@ const NodeHeader = (props: NodeHeaderProps) => {
 
                   setNodes((oldNodes) => {
                     return oldNodes.filter((node) => node.id !== data.id);
+                  });
+
+                  setNodeNames((oldNames) => {
+                    const currentIndex = oldNames.findIndex(
+                      (name) => name === data.name
+                    );
+
+                    if (currentIndex === -1) {
+                      return oldNames;
+                    }
+
+                    return [
+                      ...oldNames.slice(0, currentIndex),
+                      ...oldNames.slice(currentIndex + 1),
+                    ];
                   });
                 }}
               >

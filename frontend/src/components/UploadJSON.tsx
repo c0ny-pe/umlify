@@ -6,13 +6,16 @@ import { addEdge, Edge } from "@xyflow/react";
 import Trait from "../model/Trait";
 import AbstractClass from "../model/AbstractClass";
 import ConcreteClass from "../model/ConcreteClass";
+import { getUniqueName } from "../utils/nodeName";
 
 type UploadJSONProps = {
   setNodes: React.Dispatch<React.SetStateAction<UMLNode[]>>;
+  setNodeNames: React.Dispatch<React.SetStateAction<string[]>>;
+  setNextNodeId: (nextNodeId: number) => void;
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
 }
 
-const UploadJSON = ({ setNodes, setEdges }: UploadJSONProps): JSX.Element => {
+const UploadJSON = ({ setNodes, setNodeNames, setNextNodeId, setEdges }: UploadJSONProps): JSX.Element => {
   const VisuallyHiddenInput = styled('input')({
     clip: 'rect(0 0 0 0)',
     clipPath: 'inset(50%)',
@@ -39,12 +42,17 @@ const UploadJSON = ({ setNodes, setEdges }: UploadJSONProps): JSX.Element => {
       const json = JSON.parse(contents);
 
       let nodes: UMLNode[] = [];
+      const usedNames: string[] = [];
+      const nodeNames: string[] = [];
       for (let node of json.nodes) {
+        const uniqueName = getUniqueName(node.name, usedNames);
+        usedNames.push(uniqueName);
+        nodeNames.push(uniqueName);
         switch (node.classType) {
           case "trait":
             nodes.push(new Trait(
               node.id,
-              node.name,
+              uniqueName,
               node.methods,
               node.fields,
               node.x,
@@ -54,7 +62,7 @@ const UploadJSON = ({ setNodes, setEdges }: UploadJSONProps): JSX.Element => {
           case "abstractClass":
             nodes.push(new AbstractClass(
               node.id,
-              node.name,
+              uniqueName,
               node.methods,
               node.fields,
               node.x,
@@ -64,7 +72,7 @@ const UploadJSON = ({ setNodes, setEdges }: UploadJSONProps): JSX.Element => {
           case "concreteClass":
             nodes.push(new ConcreteClass(
               node.id,
-              node.name,
+              uniqueName,
               node.methods,
               node.fields,
               node.x,
@@ -86,6 +94,12 @@ const UploadJSON = ({ setNodes, setEdges }: UploadJSONProps): JSX.Element => {
       }
 
       setNodes(nodes);
+      setNodeNames(nodeNames);
+      const maxImportedId = nodes.reduce(
+        (maxId, node) => Math.max(maxId, node.id),
+        0
+      );
+      setNextNodeId(maxImportedId + 1);
       setEdges(edges);
     }
 
