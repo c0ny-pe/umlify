@@ -14,6 +14,7 @@ type StyledNodeProps = {
   setNodeNames: Dispatch<SetStateAction<string[]>>;
   setEdges: Dispatch<SetStateAction<Edge[]>>;
   node: NodeProps<CustomNode>;
+  nodeNames: string[];
   getUniqueNodeName: (baseName: string, excludedName?: string) => string;
 };
 
@@ -26,7 +27,7 @@ type StyledNodeProps = {
  * @author Máximo Flores Valenzuela <https://github.com/maxfloresv>
  */
 const StyledNode = (props: StyledNodeProps): JSX.Element => {
-  const { setNodes, setNodeNames, setEdges, node, getUniqueNodeName } = props;
+  const { setNodes, setNodeNames, setEdges, node, nodeNames, getUniqueNodeName } = props;
   const { data } = node;
   /** Defines the handles for each side of the node */
   const LEFT_RIGHT_HANDLES = 3;
@@ -174,6 +175,7 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
             expanded={expanded}
             handlePanelChange={handlePanelChange}
             setExpanded={setExpanded}
+            allowedTypeNames={nodeNames}
           />
 
           <NodeMethods

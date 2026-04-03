@@ -1,11 +1,15 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useMemo, useState } from "react";
 import UMLNode, {
   Visibility,
   type CustomNodeData,
   type FieldType,
 } from "../../model/UMLNode";
 import {
+  SCALA_SIMPLE_TYPE_LIST,
+} from "../../utils/scalaFieldType";
+import {
   Accordion,
+  Autocomplete,
   AccordionDetails,
   AccordionSummary,
   Button,
@@ -25,6 +29,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 type NodeFieldsProps = {
   data: CustomNodeData;
   setNodes: Dispatch<SetStateAction<UMLNode[]>>;
+  allowedTypeNames: string[];
   drawVisibility: (visibility: Visibility | null) => string;
   expanded: string | false;
   handlePanelChange: (
@@ -46,6 +51,7 @@ const NodeFields = (props: NodeFieldsProps) => {
   const {
     data,
     setNodes,
+    allowedTypeNames,
     drawVisibility,
     expanded,
     handlePanelChange,
@@ -53,6 +59,27 @@ const NodeFields = (props: NodeFieldsProps) => {
     forceUpdate,
     setExpanded,
   } = props;
+
+  const [fieldTypeDrafts, setFieldTypeDrafts] = useState<Record<string, string>>(
+    {}
+  );
+  const [fieldTypeOpen, setFieldTypeOpen] = useState<Record<string, boolean>>(
+    {}
+  );
+
+  const getFieldKey = (field: FieldType, index: number): string => {
+    return `${field.name}-${index}`;
+  };
+
+  const fieldTypeOptions = useMemo(() => {
+    const dynamicClassTypes = allowedTypeNames
+      .map((name) => name.trim())
+      .filter(Boolean);
+
+    return Array.from(
+      new Set([...SCALA_SIMPLE_TYPE_LIST, ...dynamicClassTypes])
+    ).sort((a, b) => a.localeCompare(b));
+  }, [allowedTypeNames]);
 
   return (
     <>
@@ -133,6 +160,8 @@ const NodeFields = (props: NodeFieldsProps) => {
                         id={`field-${i}-name`}
                         label="Field Name"
                         variant="standard"
+                        fullWidth
+                        sx={{ flex: 1, minWidth: 0 }}
                         defaultValue={field.name}
                         size="small"
                         onChange={(e) => {
@@ -158,13 +187,34 @@ const NodeFields = (props: NodeFieldsProps) => {
                         }}
                       />
 
-                      <TextField
-                        id={`field-${i}-type`}
-                        label="Field Type"
-                        variant="standard"
-                        defaultValue={field.type}
-                        size="small"
-                        onChange={(e) => {
+                      <Autocomplete
+                        freeSolo
+                        options={fieldTypeOptions}
+                        open={Boolean(fieldTypeOpen[getFieldKey(field, i)])}
+                        openOnFocus={false}
+                        onOpen={() => {
+                          // Intentionally controlled by onInputChange only.
+                        }}
+                        onClose={() => {
+                          const fieldKey = getFieldKey(field, i);
+                          setFieldTypeOpen((oldOpen) => ({
+                            ...oldOpen,
+                            [fieldKey]: false,
+                          }));
+                        }}
+                        sx={{ flex: 1, minWidth: 0 }}
+                        inputValue={fieldTypeDrafts[getFieldKey(field, i)] ?? field.type}
+                        onInputChange={(_event, nextValue) => {
+                          const fieldKey = getFieldKey(field, i);
+                          setFieldTypeDrafts((oldDrafts) => ({
+                            ...oldDrafts,
+                            [fieldKey]: nextValue,
+                          }));
+                          setFieldTypeOpen((oldOpen) => ({
+                            ...oldOpen,
+                            [fieldKey]: nextValue.trim().length > 0,
+                          }));
+
                           setNodes((oldNodes) => {
                             const [retrievedNode] = oldNodes.filter(
                               (n: UMLNode) => n.id === data.id
@@ -179,12 +229,59 @@ const NodeFields = (props: NodeFieldsProps) => {
 
                             retrievedNode.updateField(fieldToUpdate, {
                               ...fieldToUpdate,
-                              type: e.target.value,
+                              type: nextValue,
                             });
                             return [...oldNodes];
                           });
-                          forceUpdate();
                         }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            id={`field-${i}-type`}
+                            label="Field Type"
+                            variant="standard"
+                            fullWidth
+                            size="small"
+                            onBlur={() => {
+                              const fieldKey = getFieldKey(field, i);
+                              const draftValue =
+                                fieldTypeDrafts[fieldKey] !== undefined
+                                  ? fieldTypeDrafts[fieldKey]
+                                  : field.type;
+                              const normalizedType = draftValue.trim();
+
+                              setFieldTypeOpen((oldOpen) => ({
+                                ...oldOpen,
+                                [fieldKey]: false,
+                              }));
+
+                              setFieldTypeDrafts((oldDrafts) => ({
+                                ...oldDrafts,
+                                [fieldKey]: normalizedType,
+                              }));
+
+                              setNodes((oldNodes) => {
+                                const [retrievedNode] = oldNodes.filter(
+                                  (n: UMLNode) => n.id === data.id
+                                );
+                                const fieldToUpdate = data.fields.find(
+                                  (f) => f.name === field.name
+                                );
+
+                                if (!fieldToUpdate) {
+                                  return oldNodes;
+                                }
+
+                                retrievedNode.updateField(fieldToUpdate, {
+                                  ...fieldToUpdate,
+                                  type: normalizedType,
+                                });
+                                return [...oldNodes];
+                              });
+                              forceUpdate();
+                            }}
+                          />
+                        )}
                       />
                     </div>
 

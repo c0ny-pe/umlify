@@ -1,6 +1,6 @@
 import { Edge, ReactFlowInstance } from "@xyflow/react";
 import UMLNode, { FieldType, MethodType } from "../model/UMLNode";
-import React, { useState, useRef } from "react";
+import React, { useCallback, useState, useRef } from "react";
 import useCanvasRightClick from "./useCanvasRightClick";
 import { getUniqueName } from "../utils/nodeName";
 
@@ -71,25 +71,16 @@ const useGlobalContext = (): GlobalContext => {
     nextNodeIdRef.current = nextNodeId;
   };
 
-  const doesNodeNameExist = (name: string, excludedName?: string) => {
-    const normalizedName = name.trim().toLowerCase();
+  const getUniqueNodeName = useCallback(
+    (baseName: string, excludedName?: string) => {
+      const usedNames = excludedName
+        ? nodeNames.filter((name) => name !== excludedName)
+        : nodeNames;
 
-    return nodeNames.some((nodeName) => {
-      if (excludedName && nodeName.trim().toLowerCase() === excludedName.trim().toLowerCase()) {
-        return false;
-      }
-
-      return nodeName.trim().toLowerCase() === normalizedName;
-    });
-  };
-
-  const getUniqueNodeName = (baseName: string, excludedName?: string) => {
-    const usedNames = excludedName
-      ? nodeNames.filter((name) => name !== excludedName)
-      : nodeNames;
-
-    return getUniqueName(baseName, usedNames, DEFAULT_NODE_NAME);
-  };
+      return getUniqueName(baseName, usedNames, DEFAULT_NODE_NAME);
+    },
+    [nodeNames]
+  );
 
   // Allows me to disable the context menu in some components
   const [isMenuContextActive, setIsMenuContextActive] = useState<boolean>(true);

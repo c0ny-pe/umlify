@@ -265,49 +265,53 @@ function App() {
   /** Custom node styling under the StyledNode component. */
   // Empty dependences causes this to not rerender.
 
-  const createNodeComponent = (
-    ctx: GlobalContext,
-    props: NodeProps<CustomNode>
-  ) => (
-    <StyledNode
-      setNodes={ctx.setNodes}
-      setNodeNames={ctx.setNodeNames}
-      setEdges={ctx.setEdges}
-      node={props}
-      getUniqueNodeName={ctx.getUniqueNodeName}
-    />
-  );
+  const nodeTypes: NodeTypes = useMemo(() => {
+    return {
+      abstractClass: (props: NodeProps<CustomNode>) => (
+        <StyledNode
+          setNodes={ctx.setNodes}
+          setNodeNames={ctx.setNodeNames}
+          setEdges={ctx.setEdges}
+          node={props}
+          nodeNames={ctx.nodeNames}
+          getUniqueNodeName={ctx.getUniqueNodeName}
+        />
+      ),
+      concreteClass: (props: NodeProps<CustomNode>) => (
+        <StyledNode
+          setNodes={ctx.setNodes}
+          setNodeNames={ctx.setNodeNames}
+          setEdges={ctx.setEdges}
+          node={props}
+          nodeNames={ctx.nodeNames}
+          getUniqueNodeName={ctx.getUniqueNodeName}
+        />
+      ),
+      trait: (props: NodeProps<CustomNode>) => (
+        <StyledNode
+          setNodes={ctx.setNodes}
+          setNodeNames={ctx.setNodeNames}
+          setEdges={ctx.setEdges}
+          node={props}
+          nodeNames={ctx.nodeNames}
+          getUniqueNodeName={ctx.getUniqueNodeName}
+        />
+      ),
+    };
+  }, [ctx.nodeNames, ctx.getUniqueNodeName, ctx.setEdges, ctx.setNodeNames, ctx.setNodes]);
 
-  function CustomNodeTypes(ctx: GlobalContext): NodeTypes {
-    return useMemo(() => {
-      return {
-        abstractClass: (props) => createNodeComponent(ctx, props),
-        concreteClass: (props) => createNodeComponent(ctx, props),
-        trait: (props) => createNodeComponent(ctx, props),
-      };
-    }, []);
-  }
-
-  function CustomEdgeTypes(
-    edgeSetter: Dispatch<SetStateAction<Edge[]>>
-  ): EdgeTypes {
-    return useMemo(() => {
-      const setterProperty = { setEdges: edgeSetter };
-      return {
-        aggregation: (props) =>
-          AggregationEdge({ ...props, ...setterProperty }),
-        association: (props) =>
-          AssociationEdge({ ...props, ...setterProperty }),
-        composition: (props) =>
-          CompositionEdge({ ...props, ...setterProperty }),
-        dependency: (props) => DependencyEdge({ ...props, ...setterProperty }),
-        implementation: (props) =>
-          ImplementationEdge({ ...props, ...setterProperty }),
-        inheritance: (props) =>
-          InheritanceEdge({ ...props, ...setterProperty }),
-      };
-    }, []);
-  }
+  const edgeTypes: EdgeTypes = useMemo(() => {
+    const setterProperty = { setEdges: ctx.setEdges };
+    return {
+      aggregation: (props) => AggregationEdge({ ...props, ...setterProperty }),
+      association: (props) => AssociationEdge({ ...props, ...setterProperty }),
+      composition: (props) => CompositionEdge({ ...props, ...setterProperty }),
+      dependency: (props) => DependencyEdge({ ...props, ...setterProperty }),
+      implementation: (props) =>
+        ImplementationEdge({ ...props, ...setterProperty }),
+      inheritance: (props) => InheritanceEdge({ ...props, ...setterProperty }),
+    };
+  }, [ctx.setEdges]);
 
   return (
     <BrowserRouter>
@@ -420,8 +424,8 @@ function App() {
               <ReactFlow
                 nodes={ctx.nodes.map((n) => n.getNode())}
                 edges={ctx.edges}
-                nodeTypes={CustomNodeTypes(ctx)}
-                edgeTypes={CustomEdgeTypes(ctx.setEdges)}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 onNodesChange={onNodesChange}
                 onNodesDelete={onNodesDelete}
                 onEdgesChange={onEdgesChange}
