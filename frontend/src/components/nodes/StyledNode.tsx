@@ -11,11 +11,14 @@ import "../styles/containers.css";
 
 type StyledNodeProps = {
   setNodes: Dispatch<SetStateAction<UMLNode[]>>;
-  setNodeNames: Dispatch<SetStateAction<string[]>>;
   setEdges: Dispatch<SetStateAction<Edge[]>>;
   node: NodeProps<CustomNode>;
   nodeNames: string[];
+  editMode: boolean;
+  setEditMode: Dispatch<SetStateAction<boolean>>;
   getUniqueNodeName: (baseName: string, excludedName?: string) => string;
+  onDuplicateName: (attemptedName: string) => void;
+  onEmptyName: (message: string) => void;
 };
 
 /**
@@ -27,7 +30,17 @@ type StyledNodeProps = {
  * @author Máximo Flores Valenzuela <https://github.com/maxfloresv>
  */
 const StyledNode = (props: StyledNodeProps): JSX.Element => {
-  const { setNodes, setNodeNames, setEdges, node, nodeNames, getUniqueNodeName } = props;
+  const {
+    setNodes,
+    setEdges,
+    node,
+    nodeNames,
+    editMode,
+    setEditMode,
+    getUniqueNodeName,
+    onDuplicateName,
+    onEmptyName,
+  } = props;
   const { data } = node;
   /** Defines the handles for each side of the node */
   const LEFT_RIGHT_HANDLES = 3;
@@ -36,8 +49,6 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
     height: 10,
   };
 
-  /** Whether the current node is in edit mode or not */
-  const [editMode, setEditMode] = useState<boolean>(false);
   // Allows forcing rerenders in this component
   const [_, setLastChange] = useState<Date | null>(null);
   /** Set the current panel expanded considering fields and methods */
@@ -165,8 +176,9 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
             node={node}
             setEdges={setEdges}
             setEditMode={setEditMode}
-            setNodeNames={setNodeNames}
             getUniqueNodeName={getUniqueNodeName}
+            onDuplicateName={onDuplicateName}
+            onEmptyName={onEmptyName}
           />
 
           <NodeFields
@@ -184,6 +196,7 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
             expanded={expanded}
             handlePanelChange={handlePanelChange}
             setExpanded={setExpanded}
+            allowedTypeNames={nodeNames}
           />
         </div>
       </div>

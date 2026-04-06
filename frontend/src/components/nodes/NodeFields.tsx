@@ -63,9 +63,6 @@ const NodeFields = (props: NodeFieldsProps) => {
   const [fieldTypeDrafts, setFieldTypeDrafts] = useState<Record<string, string>>(
     {}
   );
-  const [fieldTypeOpen, setFieldTypeOpen] = useState<Record<string, boolean>>(
-    {}
-  );
 
   const getFieldKey = (field: FieldType, index: number): string => {
     return `${field.name}-${index}`;
@@ -190,18 +187,7 @@ const NodeFields = (props: NodeFieldsProps) => {
                       <Autocomplete
                         freeSolo
                         options={fieldTypeOptions}
-                        open={Boolean(fieldTypeOpen[getFieldKey(field, i)])}
-                        openOnFocus={false}
-                        onOpen={() => {
-                          // Intentionally controlled by onInputChange only.
-                        }}
-                        onClose={() => {
-                          const fieldKey = getFieldKey(field, i);
-                          setFieldTypeOpen((oldOpen) => ({
-                            ...oldOpen,
-                            [fieldKey]: false,
-                          }));
-                        }}
+                        openOnFocus
                         sx={{ flex: 1, minWidth: 0 }}
                         inputValue={fieldTypeDrafts[getFieldKey(field, i)] ?? field.type}
                         onInputChange={(_event, nextValue) => {
@@ -209,10 +195,6 @@ const NodeFields = (props: NodeFieldsProps) => {
                           setFieldTypeDrafts((oldDrafts) => ({
                             ...oldDrafts,
                             [fieldKey]: nextValue,
-                          }));
-                          setFieldTypeOpen((oldOpen) => ({
-                            ...oldOpen,
-                            [fieldKey]: nextValue.trim().length > 0,
                           }));
 
                           setNodes((oldNodes) => {
@@ -249,11 +231,6 @@ const NodeFields = (props: NodeFieldsProps) => {
                                   ? fieldTypeDrafts[fieldKey]
                                   : field.type;
                               const normalizedType = draftValue.trim();
-
-                              setFieldTypeOpen((oldOpen) => ({
-                                ...oldOpen,
-                                [fieldKey]: false,
-                              }));
 
                               setFieldTypeDrafts((oldDrafts) => ({
                                 ...oldDrafts,

@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Edge, NodeProps } from "@xyflow/react";
 import UMLNode, { CustomNode, CustomNodeData } from "../../model/UMLNode";
 
@@ -26,11 +26,12 @@ type NodeHeaderProps = {
   editMode: boolean;
   setEditMode: Dispatch<SetStateAction<boolean>>;
   setNodes: Dispatch<SetStateAction<UMLNode[]>>;
-  setNodeNames: Dispatch<SetStateAction<string[]>>;
   setEdges: Dispatch<SetStateAction<Edge[]>>;
   forceUpdate: () => void;
   mouseHover: boolean;
   getUniqueNodeName: (baseName: string, excludedName?: string) => string;
+  onDuplicateName: (attemptedName: string) => void;
+  onEmptyName: (message: string) => void;
 };
 
 const NodeHeader = (props: NodeHeaderProps) => {
@@ -40,18 +41,59 @@ const NodeHeader = (props: NodeHeaderProps) => {
     editMode,
     setEditMode,
     setNodes,
-    setNodeNames,
     setEdges,
     forceUpdate,
     mouseHover,
     getUniqueNodeName,
+    onDuplicateName,
+    onEmptyName,
   } = props;
 
   const [nameInput, setNameInput] = useState(data.name);
+  const classNameInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setNameInput(data.name);
   }, [data.name, editMode]);
+
+  const commitClassNameChange = (): boolean => {
+    const normalizedName = nameInput.trim();
+
+    if (!normalizedName) {
+      onEmptyName("El nombre de la clase no puede estar vacío.");
+      setEditMode(true);
+      setTimeout(() => {
+        classNameInputRef.current?.focus();
+      }, 0);
+      return false;
+    }
+
+    const uniqueName = getUniqueNodeName(normalizedName, data.name);
+
+    if (normalizedName && uniqueName !== normalizedName) {
+      onDuplicateName(normalizedName);
+      setEditMode(true);
+      setTimeout(() => {
+        classNameInputRef.current?.focus();
+      }, 0);
+      return false;
+    }
+
+    setNodes((oldNodes) => {
+      const [retrievedNode] = oldNodes.filter((n: UMLNode) => n.id === data.id);
+
+      if (!retrievedNode) {
+        return oldNodes;
+      }
+
+      retrievedNode.updateName(uniqueName);
+      return [...oldNodes];
+    });
+
+    setNameInput(uniqueName);
+    forceUpdate();
+    return true;
+  };
 
   return (
     <>
@@ -70,40 +112,10 @@ const NodeHeader = (props: NodeHeaderProps) => {
                 label="Class Name"
                 variant="standard"
                 value={nameInput}
+                inputRef={classNameInputRef}
                 size="small"
                 onChange={(e) => {
                   setNameInput(e.target.value);
-                }}
-                onBlur={() => {
-                  const uniqueName = getUniqueNodeName(nameInput, data.name);
-                  setNodes((oldNodes) => {
-                    const [retrievedNode] = oldNodes.filter(
-                      (n: UMLNode) => n.id === data.id
-                    );
-
-                    if (!retrievedNode) {
-                      return oldNodes;
-                    }
-
-                    retrievedNode.updateName(uniqueName);
-                    return [...oldNodes];
-                  });
-
-                  setNodeNames((oldNames) => {
-                    const nextNames = [...oldNames];
-                    const currentIndex = nextNames.findIndex(
-                      (name) => name === data.name
-                    );
-
-                    if (currentIndex !== -1) {
-                      nextNames[currentIndex] = uniqueName;
-                    }
-
-                    return nextNames;
-                  });
-
-                  setNameInput(uniqueName);
-                  forceUpdate();
                 }}
               />
 
@@ -177,22 +189,31 @@ const NodeHeader = (props: NodeHeaderProps) => {
         )}
 
         <div style={{ position: "absolute", top: 0, right: 0 }}>
-          {mouseHover && (
-            <>
-              {editMode ? (
-                <Tooltip placement="top" title="Exit Edit mode" arrow>
-                  <IconButton size="small" onClick={() => setEditMode(false)}>
-                    <LogoutIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              ) : (
-                <Tooltip placement="top" title="Enter Edit mode" arrow>
-                  <IconButton size="small" onClick={() => setEditMode(true)}>
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </>
+          {editMode ? (
+            <Tooltip placement="top" title="Exit Edit mode" arrow>
+              <IconButton
+                size="small"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                }}
+                onClick={() => {
+                  const canClose = commitClassNameChange();
+                  if (canClose) {
+                    setEditMode(false);
+                  }
+                }}
+              >
+                <LogoutIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          ) : (
+            mouseHover && (
+              <Tooltip placement="top" title="Enter Edit mode" arrow>
+                <IconButton size="small" onClick={() => setEditMode(true)}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )
           )}
         </div>
 
@@ -214,21 +235,6 @@ const NodeHeader = (props: NodeHeaderProps) => {
 
                   setNodes((oldNodes) => {
                     return oldNodes.filter((node) => node.id !== data.id);
-                  });
-
-                  setNodeNames((oldNames) => {
-                    const currentIndex = oldNames.findIndex(
-                      (name) => name === data.name
-                    );
-
-                    if (currentIndex === -1) {
-                      return oldNames;
-                    }
-
-                    return [
-                      ...oldNames.slice(0, currentIndex),
-                      ...oldNames.slice(currentIndex + 1),
-                    ];
                   });
                 }}
               >

@@ -1,10 +1,11 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useMemo } from "react";
 import UMLNode, {
   CustomNodeData,
   MethodType,
   Type,
   Visibility,
 } from "../../model/UMLNode";
+import { SCALA_SIMPLE_TYPE_LIST } from "../../utils/scalaFieldType";
 import {
   Accordion,
   AccordionSummary,
@@ -40,6 +41,7 @@ type NodeMethodsProps = {
   editMode: boolean;
   forceUpdate: () => void;
   setExpanded: (x: string | false) => void;
+  allowedTypeNames: string[];
 };
 
 const DEFAULT_NEW_METHOD: MethodType = {
@@ -60,7 +62,18 @@ const NodeMethods = (props: NodeMethodsProps) => {
     editMode,
     forceUpdate,
     setExpanded,
+    allowedTypeNames,
   } = props;
+
+  const methodTypeOptions = useMemo(() => {
+    const dynamicClassTypes = allowedTypeNames
+      .map((name) => name.trim())
+      .filter(Boolean);
+
+    return Array.from(
+      new Set([...SCALA_SIMPLE_TYPE_LIST, ...dynamicClassTypes])
+    ).sort((a, b) => a.localeCompare(b));
+  }, [allowedTypeNames]);
 
   return (
     <>
@@ -179,13 +192,13 @@ const NodeMethods = (props: NodeMethodsProps) => {
                         }}
                       />
 
-                      <TextField
-                        size="small"
-                        id={`method-${i}-codType`}
-                        label="Method Codomain Type"
-                        variant="standard"
-                        defaultValue={method.codType}
-                        onChange={(e) => {
+                      <Autocomplete
+                        freeSolo
+                        options={methodTypeOptions}
+                        openOnFocus
+                        sx={{ width: "100%" }}
+                        inputValue={method.codType ?? ""}
+                        onInputChange={(_event, nextValue) => {
                           setNodes((oldNodes) => {
                             const [retrievedNode] = oldNodes.filter(
                               (n: UMLNode) => n.id === data.id
@@ -200,12 +213,21 @@ const NodeMethods = (props: NodeMethodsProps) => {
 
                             retrievedNode.updateMethod(methodToUpdate, {
                               ...methodToUpdate,
-                              codType: e.target.value,
+                              codType: nextValue,
                             });
                             return [...oldNodes];
                           });
                           forceUpdate();
                         }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            size="small"
+                            id={`method-${i}-codType`}
+                            label="Method Codomain Type"
+                            variant="standard"
+                          />
+                        )}
                       />
                     </div>
 
@@ -214,9 +236,10 @@ const NodeMethods = (props: NodeMethodsProps) => {
                       sx={{ maxWidth: "inherit", marginBottom: "20px" }}
                       multiple
                       id="method-tags-standard"
-                      options={[]}
+                      options={methodTypeOptions}
                       value={method.domType}
                       freeSolo
+                      openOnFocus
                       // Allows to insert a value more than one time
                       isOptionEqualToValue={() => false}
                       limitTags={2}

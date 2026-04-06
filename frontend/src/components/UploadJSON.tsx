@@ -7,15 +7,15 @@ import Trait from "../model/Trait";
 import AbstractClass from "../model/AbstractClass";
 import ConcreteClass from "../model/ConcreteClass";
 import { getUniqueName } from "../utils/nodeName";
+import { diagramPayloadSchema } from "../schemas/diagramSchemas";
 
 type UploadJSONProps = {
   setNodes: React.Dispatch<React.SetStateAction<UMLNode[]>>;
-  setNodeNames: React.Dispatch<React.SetStateAction<string[]>>;
   setNextNodeId: (nextNodeId: number) => void;
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
 }
 
-const UploadJSON = ({ setNodes, setNodeNames, setNextNodeId, setEdges }: UploadJSONProps): JSX.Element => {
+const UploadJSON = ({ setNodes, setNextNodeId, setEdges }: UploadJSONProps): JSX.Element => {
   const VisuallyHiddenInput = styled('input')({
     clip: 'rect(0 0 0 0)',
     clipPath: 'inset(50%)',
@@ -39,19 +39,38 @@ const UploadJSON = ({ setNodes, setNodeNames, setNextNodeId, setEdges }: UploadJ
 
     reader.onload = (e) => {
       const contents = e.target?.result as string;
-      const json = JSON.parse(contents);
+      let rawJson: unknown;
+
+      try {
+        rawJson = JSON.parse(contents);
+      } catch {
+        window.alert("El archivo JSON no tiene un formato válido.");
+        target.value = "";
+        return;
+      }
+
+      const parsed = diagramPayloadSchema.safeParse(rawJson);
+      if (!parsed.success) {
+        const firstIssue = parsed.error.issues[0];
+        const issuePath = firstIssue?.path.join(".") || "archivo";
+        const issueMessage = firstIssue?.message || "JSON inválido";
+        window.alert(`JSON inválido en ${issuePath}: ${issueMessage}`);
+        target.value = "";
+        return;
+      }
+
+      const json = parsed.data;
 
       let nodes: UMLNode[] = [];
       const usedNames: string[] = [];
-      const nodeNames: string[] = [];
       for (let node of json.nodes) {
+        const nodeId = Number(node.id);
         const uniqueName = getUniqueName(node.name, usedNames);
         usedNames.push(uniqueName);
-        nodeNames.push(uniqueName);
         switch (node.classType) {
           case "trait":
             nodes.push(new Trait(
-              node.id,
+              nodeId,
               uniqueName,
               node.methods,
               node.fields,
@@ -61,7 +80,7 @@ const UploadJSON = ({ setNodes, setNodeNames, setNextNodeId, setEdges }: UploadJ
             break;
           case "abstractClass":
             nodes.push(new AbstractClass(
-              node.id,
+              nodeId,
               uniqueName,
               node.methods,
               node.fields,
@@ -71,7 +90,7 @@ const UploadJSON = ({ setNodes, setNodeNames, setNextNodeId, setEdges }: UploadJ
             break;
           case "concreteClass":
             nodes.push(new ConcreteClass(
-              node.id,
+              nodeId,
               uniqueName,
               node.methods,
               node.fields,
@@ -94,13 +113,13 @@ const UploadJSON = ({ setNodes, setNodeNames, setNextNodeId, setEdges }: UploadJ
       }
 
       setNodes(nodes);
-      setNodeNames(nodeNames);
       const maxImportedId = nodes.reduce(
         (maxId, node) => Math.max(maxId, node.id),
         0
       );
       setNextNodeId(maxImportedId + 1);
       setEdges(edges);
+      target.value = "";
     }
 
     reader.readAsText(file);

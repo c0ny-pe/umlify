@@ -2,6 +2,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useState,
   SetStateAction,
   Dispatch,
 } from "react";
@@ -45,12 +46,16 @@ import ExportButton from "./components/ExportButton";
 import DownloadJSON from "./components/DownloadJSON";
 import UploadJSON from "./components/UploadJSON";
 import { Button } from "@mui/material";
+import ToastAlert from "./components/ToastAlert";
 // import NavBar from "./components/NavBar";
 // import Login from "./components/pages/Login";
 // import SignUp from "./components/pages/Signup";
 
 function App() {
   const ctx: GlobalContext = useGlobalContext();
+  const [editModeByNodeId, setEditModeByNodeId] = useState<
+    Record<number, boolean>
+  >({});
 
   /** This handles the right-clicks on the canvas. */
   // Reference: https://blog.logrocket.com/creating-react-context-menu/
@@ -100,12 +105,21 @@ function App() {
         return newNodes;
       });
 
-      ctx.setNodeNames((names) => {
-        const deletedNames = new Set(deleted.map((node) => node.data?.name));
-        return names.filter((name) => !deletedNames.has(name));
+      setEditModeByNodeId((currentEditModeById) => {
+        const deletedIds = new Set(deleted.map((node) => Number(node.id)));
+        const nextEditModeById: Record<number, boolean> = {};
+
+        Object.entries(currentEditModeById).forEach(([id, isEditMode]) => {
+          const numericId = Number(id);
+          if (!deletedIds.has(numericId)) {
+            nextEditModeById[numericId] = isEditMode;
+          }
+        });
+
+        return nextEditModeById;
       });
     },
-    [ctx.setNodes, ctx.setNodeNames]
+    [ctx.setNodes]
   );
 
   /**
@@ -266,39 +280,103 @@ function App() {
   // Empty dependences causes this to not rerender.
 
   const nodeTypes: NodeTypes = useMemo(() => {
+    const createSetEditModeForNode = (
+      nodeId: number
+    ): Dispatch<SetStateAction<boolean>> => {
+      return (nextEditMode) => {
+        setEditModeByNodeId((currentEditModeById) => {
+          const currentValue = Boolean(currentEditModeById[nodeId]);
+          const resolvedValue =
+            typeof nextEditMode === "function"
+              ? nextEditMode(currentValue)
+              : nextEditMode;
+
+          return {
+            ...currentEditModeById,
+            [nodeId]: resolvedValue,
+          };
+        });
+      };
+    };
+
     return {
       abstractClass: (props: NodeProps<CustomNode>) => (
         <StyledNode
           setNodes={ctx.setNodes}
-          setNodeNames={ctx.setNodeNames}
           setEdges={ctx.setEdges}
           node={props}
           nodeNames={ctx.nodeNames}
+          editMode={Boolean(editModeByNodeId[props.data.id])}
+          setEditMode={createSetEditModeForNode(props.data.id)}
           getUniqueNodeName={ctx.getUniqueNodeName}
+          onDuplicateName={(attemptedName) => {
+            ctx.setToast({
+              message: `"${attemptedName}" ya existe. No se guardó.`,
+              severity: "error",
+            });
+          }}
+          onEmptyName={(message) => {
+            ctx.setToast({
+              message,
+              severity: "error",
+            });
+          }}
         />
       ),
       concreteClass: (props: NodeProps<CustomNode>) => (
         <StyledNode
           setNodes={ctx.setNodes}
-          setNodeNames={ctx.setNodeNames}
           setEdges={ctx.setEdges}
           node={props}
           nodeNames={ctx.nodeNames}
+          editMode={Boolean(editModeByNodeId[props.data.id])}
+          setEditMode={createSetEditModeForNode(props.data.id)}
           getUniqueNodeName={ctx.getUniqueNodeName}
+          onDuplicateName={(attemptedName) => {
+            ctx.setToast({
+              message: `"${attemptedName}" ya existe. No se guardó.`,
+              severity: "error",
+            });
+          }}
+          onEmptyName={(message) => {
+            ctx.setToast({
+              message,
+              severity: "error",
+            });
+          }}
         />
       ),
       trait: (props: NodeProps<CustomNode>) => (
         <StyledNode
           setNodes={ctx.setNodes}
-          setNodeNames={ctx.setNodeNames}
           setEdges={ctx.setEdges}
           node={props}
           nodeNames={ctx.nodeNames}
+          editMode={Boolean(editModeByNodeId[props.data.id])}
+          setEditMode={createSetEditModeForNode(props.data.id)}
           getUniqueNodeName={ctx.getUniqueNodeName}
+          onDuplicateName={(attemptedName) => {
+            ctx.setToast({
+              message: `"${attemptedName}" ya existe. No se guardó.`,
+              severity: "error",
+            });
+          }}
+          onEmptyName={(message) => {
+            ctx.setToast({
+              message,
+              severity: "error",
+            });
+          }}
         />
       ),
     };
-  }, [ctx.nodeNames, ctx.getUniqueNodeName, ctx.setEdges, ctx.setNodeNames, ctx.setNodes]);
+  }, [
+    ctx.nodeNames,
+    ctx.getUniqueNodeName,
+    ctx.setEdges,
+    ctx.setNodes,
+    editModeByNodeId,
+  ]);
 
   const edgeTypes: EdgeTypes = useMemo(() => {
     const setterProperty = { setEdges: ctx.setEdges };
@@ -364,8 +442,6 @@ function App() {
                             );
                             return [...oldNodes, newNode];
                           });
-
-                          ctx.setNodeNames((oldNames) => [...oldNames, uniqueName]);
                         }}
                       >
                         Add Trait
@@ -387,8 +463,6 @@ function App() {
                             );
                             return [...oldNodes, newNode];
                           });
-
-                          ctx.setNodeNames((oldNames) => [...oldNames, uniqueName]);
                         }}
                       >
                         Add Abstract Class
@@ -410,8 +484,6 @@ function App() {
                             );
                             return [...oldNodes, newNode];
                           });
-
-                          ctx.setNodeNames((oldNames) => [...oldNames, uniqueName]);
                         }}
                       >
                         Add Concrete Class
@@ -437,7 +509,6 @@ function App() {
                 <Panel style={{ backgroundColor: "white" }} position="top-right">
                   <UploadJSON
                     setNodes={ctx.setNodes}
-                    setNodeNames={ctx.setNodeNames}
                     setNextNodeId={ctx.setNextNodeId}
                     setEdges={ctx.setEdges}
                   />
@@ -449,6 +520,13 @@ function App() {
                 <Background />
                 <Controls />
               </ReactFlow>
+              <ToastAlert
+                toastKey={ctx.toast?.version}
+                open={Boolean(ctx.toast)}
+                message={ctx.toast?.message ?? null}
+                severity={ctx.toast?.severity ?? "error"}
+                onClose={() => ctx.setToast(null)}
+              />
             </>
           </div>
         } />

@@ -2,7 +2,7 @@ import { Class, ClassRelations, DiagramModel, Relation } from "../types/generato
 
 function formatParams(params: string[]): string {
     return params
-        .map((type, index) => `param${index}: ${type}`)
+        .map((type, index) => `param${index + 1}: ${type}`)
         .join(", ");
 }
 
