@@ -11,6 +11,27 @@ function indent(lines: string[], spaces = 2): string[] {
     return lines.map((l) => (l === "" ? "" : `${pad}${l}`));
 }
 
+function formatField(f: Class["fields"][number]): string {
+    return `${f.visibility === "public" ? "" : f.visibility + " "}val ${f.name}: ${f.type}`;
+}
+
+function formatMethodSignature(m: Class["methods"][number]): string {
+    const returnType = m.codType && m.codType.trim().length > 0 ? m.codType : "Unit";
+    return `def ${m.name}(${formatParams(m.domType)}): ${returnType}`;
+}
+
+function buildInheritanceClause(rel: ClassRelations): string {
+    let inheritance = "";
+
+    if (rel.extendsClass) inheritance += ` extends ${rel.extendsClass}`;
+    if (rel.withTraits.length) {
+        const keyword = rel.extendsClass ? "with" : "extends";
+        inheritance += ` ${keyword} ${rel.withTraits.join(" with ")}`;
+    }
+
+    return inheritance;
+}
+
 function createRelationsMap(classes: Class[], relations: Relation[]) {
     const idtoClass = new Map(classes.map(c => [c.id, c]));
     const relationsMap = new Map<string, ClassRelations>();
@@ -48,45 +69,43 @@ function createRelationsMap(classes: Class[], relations: Relation[]) {
     return relationsMap;
 }
 
-// TODO: Ver caso Trait
+function createTraitHeader(cls: Class, rel: ClassRelations): string {
+    return `trait ${cls.name}${buildInheritanceClause(rel)} {`;
+}
 
-// TODO: distintas funciones para clases e traits
+function createTraitBody(cls: Class, rel: ClassRelations): string[] {
+    const body: string[] = [];
+
+    rel.associations.forEach((a) => body.push(`val ${a.toLowerCase()}: ${a} = ???`));
+
+    if (rel.associations.length && cls.fields.length) body.push("");
+    cls.fields.forEach((f) => body.push(formatField(f)));
+    if (cls.fields.length && cls.methods.length) body.push("");
+
+    cls.methods.forEach((m) => {
+        body.push(formatMethodSignature(m));
+    });
+
+    return body;
+}
+
 function createClassHeader(cls: Class, rel: ClassRelations): string {
-    const fields = cls.fields.map(f => `${f.visibility === "public" ? "" : f.visibility + " "}val ${f.name}: ${f.type}`);
-    const constructorParams = fields.length ? `(${fields.join(", ")})` : "";
+    const constructorParams = cls.fields.map(formatField);
+    const params = constructorParams.length ? `(${constructorParams.join(", ")})` : "";
+    const keyword = cls.classType === "abstractClass" ? "abstract class" : "class";
 
-    let keyword: string;
-    switch (cls.classType) {
-        case "trait": keyword = "trait"; break;
-        case "abstractClass": keyword = "abstract class"; break;
-        case "concreteClass": keyword = "class"; break;
-    }
-
-    const params = cls.classType === "trait" ? "" : constructorParams;
-    // TODO: debería agregarlos abajo como val si es trait
-
-    let inheritance = "";
-    // TODO: ver caso trait que extiende de 2 traits
-    if (rel.extendsClass) inheritance += ` extends ${rel.extendsClass}`;
-    if (rel.withTraits.length) {
-        const k = rel.extendsClass ? "with" : "extends";
-        inheritance += ` ${k} ${rel.withTraits.join(" with ")}`;
-    }
-
-    return `${keyword} ${cls.name}${params}${inheritance} {`;
+    return `${keyword} ${cls.name}${params}${buildInheritanceClause(rel)} {`;
 }
 
 function createClassBody(cls: Class, rel: ClassRelations): string[] {
     const body: string[] = [];
 
-    rel.associations.forEach(a => body.push(`val ${a.toLowerCase()}: ${a} = ???`));
-
+    rel.associations.forEach((a) => body.push(`val ${a.toLowerCase()}: ${a} = ???`));
     if (rel.associations.length && cls.methods.length) body.push("");
 
-    cls.methods.forEach(m => {
-        const returnType = m.codType && m.codType.trim().length > 0 ? m.codType : "Unit";
-        const signature = `def ${m.name}(${formatParams(m.domType)}): ${returnType}`;
-        if (cls.classType === "trait" || cls.classType === "abstractClass") {
+    cls.methods.forEach((m) => {
+        const signature = formatMethodSignature(m);
+        if (cls.classType === "abstractClass") {
             body.push(signature);
         } else {
             body.push(`${signature} = ???`);
@@ -94,6 +113,15 @@ function createClassBody(cls: Class, rel: ClassRelations): string[] {
     });
 
     return body;
+}
+
+function createTrait(cls: Class, rel: ClassRelations): string {
+    const header = createTraitHeader(cls, rel);
+    const body = createTraitBody(cls, rel);
+
+    if (body.length === 0) return `${header}}`;
+
+    return `${header}\n${indent(body).join("\n")}\n}`;
 }
 
 function createClass(cls: Class, rel: ClassRelations): string {
@@ -105,9 +133,15 @@ function createClass(cls: Class, rel: ClassRelations): string {
     return `${header}\n${indent(body).join("\n")}\n}`;
 }
 
+function createNodeCode(cls: Class, rel: ClassRelations): string {
+    return cls.classType === "trait"
+        ? createTrait(cls, rel)
+        : createClass(cls, rel);
+}
+
 export function generateScalaCode(model: DiagramModel): string {
     const relationsMap = createRelationsMap(model.classes, model.relations);
     return model.classes
-        .map(c => createClass(c, relationsMap.get(c.id)!))
+        .map((c) => createNodeCode(c, relationsMap.get(c.id)!))
         .join("\n\n");
 }
