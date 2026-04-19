@@ -1,5 +1,6 @@
 import pool from '../db';
 import type { DiagramPayload } from '../schemas/diagramSchemas';
+import { randomUUID } from 'crypto';
 
 export interface Method {
   name: string;
@@ -39,7 +40,7 @@ export interface DiagramContent {
 }
 
 export interface Diagram {
-  id: number;
+  id: string;
   user_id: number;
   name: string;
   content: DiagramContent;
@@ -48,9 +49,10 @@ export interface Diagram {
 }
 
 export async function createDiagram(user_id: number, name: string, content: DiagramContent): Promise<Diagram> {
+  const id = randomUUID();
   const result = await pool.query(
-    'INSERT INTO diagrams (user_id, name, content) VALUES ($1, $2, $3) RETURNING *',
-    [user_id, name, content]
+    'INSERT INTO diagrams (id, user_id, name, content) VALUES ($1, $2, $3, $4) RETURNING *',
+    [id, user_id, name, content]
   );
   return result.rows[0];
 }
