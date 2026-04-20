@@ -172,6 +172,23 @@ function App() {
     return fixedHandle.join("-");
   }
 
+  function hasManualFieldType(sourceNode: UMLNode, expectedType: string): boolean {
+    return sourceNode
+      .getFields()
+      .some(
+        (field) =>
+          field.type.trim().toLowerCase() === expectedType.trim().toLowerCase()
+      );
+  }
+
+  function hasManualAssociationField(sourceNode: UMLNode, targetName: string): boolean {
+    return hasManualFieldType(sourceNode, targetName);
+  }
+
+  function hasManualAggregationField(sourceNode: UMLNode, targetName: string): boolean {
+    return hasManualFieldType(sourceNode, `List[${targetName}]`);
+  }
+
   const onConnectEnd: OnConnectEnd = (_event, connectionState) => {
     // We can only proceed when the connection is clearly between two nodes.
     console.log(_event, connectionState);
@@ -203,13 +220,49 @@ function App() {
       switch (sourceHandleNumber) {
         case "1":
           edgeTypes.push({ type: "association", id: 1 });
+
+          // Advertencia si no existe field manual para esta asociación
+          const targetName = targetNode.getName();
+          const fieldExists = hasManualAssociationField(sourceNode, targetName);
+          if (!fieldExists) {
+            ctx.setToast({
+              message: `Se generará automáticamente: val ${targetName.toLowerCase()}: ${targetName} = ???`,
+              severity: "warning",
+            });
+          }
           break;
         case "2":
-          let inheritance = defineEdgeType(sourceNode, targetNode);
-          edgeTypes.push({ type: inheritance, id: 2 });
+          try {
+            // Validar que no haya herencia múltiple
+            const existingInheritanceEdges = ctx.edges.filter(
+              (edge) => edge.source === sourceId && edge.type === "inheritance"
+            );
+            if (existingInheritanceEdges.length > 0) {
+              throw new Error("Una clase solo puede extender de una única clase");
+            }
+
+            let inheritance = defineEdgeType(sourceNode, targetNode);
+            edgeTypes.push({ type: inheritance, id: 2 });
+          } catch (error: any) {
+            ctx.setToast({
+              message: error.message || "No se pudo crear la herencia",
+              severity: "error",
+            });
+            return;
+          }
           break;
         default:
           edgeTypes.push({ type: "aggregation", id: 3 });
+
+          // Advertencia si no existe field manual para esta relación
+          const aggTargetName = targetNode.getName();
+          const aggFieldExists = hasManualAggregationField(sourceNode, aggTargetName);
+          if (!aggFieldExists) {
+            ctx.setToast({
+              message: `Se generará automáticamente: val ${aggTargetName.toLowerCase()}List: List[${aggTargetName}] = List.empty`,
+              severity: "warning",
+            });
+          }
           break;
       }
       /*
@@ -514,8 +567,8 @@ function App() {
                   />
                   <DownloadJSON nodes={ctx.nodes} edges={ctx.edges} />
                   <ExportButton nodes={ctx.nodes.map((n) => n.getNode())} />
-                  <Button>Log in</Button>
-                  <Button style={{ backgroundColor: 'blue', color: 'white' }}>Sign up</Button>
+                  {/* <Button>Log in</Button> */}
+                  {/* <Button style={{ backgroundColor: 'blue', color: 'white' }}>Sign up</Button> */}
                 </Panel>
                 <Background />
                 <Controls />

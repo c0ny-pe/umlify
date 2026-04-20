@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, useState, useRef } from "react";
 import useCanvasRightClick from "./useCanvasRightClick";
 import { getUniqueName } from "../utils/nodeName";
 
-export type ToastSeverity = "success" | "error";
+export type ToastSeverity = "success" | "warning" | "error";
 export type ToastPayload = {
   message: string;
   severity: ToastSeverity;

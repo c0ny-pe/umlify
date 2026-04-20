@@ -45,7 +45,7 @@ class AbstractClass extends UMLAbstractClass {
   }
 
   traitEdgeType: (_trait: Trait) => EdgeType = (_trait) => {
-    throw new InvalidConnectionException("A Trait can't be connected with an Abstract Class");
+    throw new InvalidConnectionException("Un trait no puede heredar de una clase abstracta");
   }
 
   abstractClassEdgeType: (_abstractClass: AbstractClass) => EdgeType = (_abstractClass) => {

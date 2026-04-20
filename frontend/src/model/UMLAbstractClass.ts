@@ -3,6 +3,7 @@ import UMLNode, { ClassType, EdgeType, FieldType, MethodType } from "./UMLNode";
 import Trait from "./Trait";
 import AbstractClass from "./AbstractClass";
 import ConcreteClass from "./ConcreteClass";
+import InvalidConnectionException from "../exceptions/InvalidConnectionException";
 
 abstract class UMLAbstractClass implements UMLNode {
   id: number;
@@ -34,6 +35,9 @@ abstract class UMLAbstractClass implements UMLNode {
   }
 
   addExtends: (node: UMLNode) => void = (node) => {
+    if (this.extends.length > 0) {
+      throw new InvalidConnectionException("Una clase solo puede extender de una única clase");
+    }
     this.extends.push(node);
   }
 
