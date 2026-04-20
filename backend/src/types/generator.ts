@@ -19,4 +19,5 @@ export interface ClassRelations {
     extendsClass: string | null;
     withTraits: string[];
     associations: string[];
+    aggregations: string[];
 }

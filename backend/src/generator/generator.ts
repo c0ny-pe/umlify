@@ -16,8 +16,9 @@ function formatField(f: Class["fields"][number]): string {
 }
 
 function formatMethodSignature(m: Class["methods"][number]): string {
+    const visibility = m.visibility !== "public" ? m.visibility + " " : "";
     const returnType = m.codType && m.codType.trim().length > 0 ? m.codType : "Unit";
-    return `def ${m.name}(${formatParams(m.domType)}): ${returnType}`;
+    return `${visibility}def ${m.name}(${formatParams(m.domType)}): ${returnType}`;
 }
 
 function buildInheritanceClause(rel: ClassRelations): string {
@@ -38,7 +39,12 @@ function createRelationsMap(classes: Class[], relations: Relation[]) {
 
     // Inicializamos los tipos de relaciones
     classes.forEach(c =>
-        relationsMap.set(c.id, { extendsClass: null, withTraits: [], associations: [] })
+        relationsMap.set(c.id, {
+            extendsClass: null,
+            withTraits: [],
+            associations: [],
+            aggregations: [],
+        })
     );
 
     // los rellenamos
@@ -59,10 +65,12 @@ function createRelationsMap(classes: Class[], relations: Relation[]) {
                 }
                 break;
             case "association":
-            case "aggregation":
-            case "composition":
             case "dependency":
                 sourceRel.associations.push(targetClass.name);
+                break;
+            case "aggregation":
+            case "composition":
+                sourceRel.aggregations.push(targetClass.name);
         }
     })
 
@@ -73,12 +81,38 @@ function createTraitHeader(cls: Class, rel: ClassRelations): string {
     return `trait ${cls.name}${buildInheritanceClause(rel)} {`;
 }
 
+function hasManualAssociationField(cls: Class, associationTargetName: string): boolean {
+    return cls.fields.some(
+        (field) => field.type.trim().toLowerCase() === associationTargetName.toLowerCase()
+    );
+}
+
+function hasManualAggregationField(cls: Class, aggregationTargetName: string): boolean {
+    return cls.fields.some(
+        (field) => field.type.trim().toLowerCase() === `list[${aggregationTargetName}]`.toLowerCase()
+    );
+}
+
 function createTraitBody(cls: Class, rel: ClassRelations): string[] {
     const body: string[] = [];
 
-    rel.associations.forEach((a) => body.push(`val ${a.toLowerCase()}: ${a} = ???`));
+    // Solo agregar fields de asociación si no existen manualmente
+    rel.associations.forEach((a) => {
+        const fieldExists = hasManualAssociationField(cls, a);
+        if (!fieldExists) {
+            body.push(`val ${a.toLowerCase()}: ${a} = ???`);
+        }
+    });
 
-    if (rel.associations.length && cls.fields.length) body.push("");
+    rel.aggregations.forEach((a) => {
+        const fieldExists = hasManualAggregationField(cls, a);
+        if (!fieldExists) {
+            body.push(`val ${a.toLowerCase()}List: List[${a}] = List.empty`);
+        }
+    });
+
+    // ver que no se repitan
+    if ((rel.associations.length || rel.aggregations.length) && cls.fields.length) body.push("");
     cls.fields.forEach((f) => body.push(formatField(f)));
     if (cls.fields.length && cls.methods.length) body.push("");
 
@@ -100,8 +134,22 @@ function createClassHeader(cls: Class, rel: ClassRelations): string {
 function createClassBody(cls: Class, rel: ClassRelations): string[] {
     const body: string[] = [];
 
-    rel.associations.forEach((a) => body.push(`val ${a.toLowerCase()}: ${a} = ???`));
-    if (rel.associations.length && cls.methods.length) body.push("");
+    // Solo agregar fields de asociación si no existen manualmente
+    rel.associations.forEach((a) => {
+        const fieldExists = hasManualAssociationField(cls, a);
+        if (!fieldExists) {
+            body.push(`val ${a.toLowerCase()}: ${a} = ???`);
+        }
+    });
+
+    rel.aggregations.forEach((a) => {
+        const fieldExists = hasManualAggregationField(cls, a);
+        if (!fieldExists) {
+            body.push(`val ${a.toLowerCase()}List: List[${a}] = List.empty`);
+        }
+    });
+
+    if ((rel.associations.length || rel.aggregations.length) && cls.methods.length) body.push("");
 
     cls.methods.forEach((m) => {
         const signature = formatMethodSignature(m);
