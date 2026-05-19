@@ -6,6 +6,8 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    environment:
+      - VITE_API_TARGET=${VITE_API_TARGET}
     depends_on:
       - backend
     restart: unless-stopped

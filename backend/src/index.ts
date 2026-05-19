@@ -1,9 +1,17 @@
 import express, { NextFunction, Request, Response } from "express";
+import helmetConfig from "./config/helmet";
+import corsMiddleware from "./config/cors";
 import userRoutes from "./routes/userRoutes";
 import diagramRoutes from "./routes/diagramRoutes";
 import generatorRoutes from "./routes/generatorRoutes";
 
 const app = express();
+
+// Security middleware
+app.use(helmetConfig);
+
+// CORS middleware (must be before routes)
+app.use(corsMiddleware);
 
 app.use(express.json());
 app.use(express.static("dist"));
