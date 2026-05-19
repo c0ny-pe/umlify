@@ -6,4 +6,6 @@ RUN npm install
 COPY . .
 RUN npm run build
 EXPOSE 3001
-CMD ["npm", "start"]
+
+# Run migrations and start the server
+CMD ["sh", "-c", "npx node-pg-migrate up && npm start"]

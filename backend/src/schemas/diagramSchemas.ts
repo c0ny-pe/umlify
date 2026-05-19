@@ -16,14 +16,14 @@ export const relationTypeSchema = z.enum([
 export const diagramFieldSchema = z.object({
   name: nonEmptyText,
   type: nonEmptyText,
-  visibility: visibilitySchema,
+  visibility: visibilitySchema.nullable().optional(),
 });
 
 export const diagramMethodSchema = z.object({
   name: nonEmptyText,
   domType: z.array(nonEmptyText),
-  codType: z.string().trim().default(''),
-  visibility: visibilitySchema,
+  codType: z.string().trim().nullable().optional(),
+  visibility: visibilitySchema.nullable().optional(),
   abstract: z.boolean(),
 });
 

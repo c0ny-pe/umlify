@@ -34,4 +34,9 @@ export const uploadDiagramBodySchema = z.object({
   content: diagramPayloadSchema,
 });
 
+export const updateDiagramBodySchema = z.object({
+  name: nonEmptyText,
+  content: diagramPayloadSchema,
+});
+
 export const generateCodeBodySchema = diagramPayloadSchema;

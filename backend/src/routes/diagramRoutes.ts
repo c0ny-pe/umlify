@@ -1,11 +1,16 @@
 import { Router } from 'express';
-import { uploadDiagram, listUserDiagrams } from '../controllers/diagramController';
-import { validateBody, validateParams } from '../middlewares/validate';
-import { uploadDiagramBodySchema, userDiagramsParamsSchema } from '../schemas/requestSchemas';
+import { uploadDiagram, listUserDiagrams, getDiagram, updateDiagramHandler, deleteDiagramHandler } from '../controllers/diagramController';
+import { validateBody } from '../middlewares/validate';
+import { uploadDiagramBodySchema, updateDiagramBodySchema } from '../schemas/requestSchemas';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
 
-router.post('/', validateBody(uploadDiagramBodySchema), uploadDiagram);
-router.get('/:user_id', validateParams(userDiagramsParamsSchema), listUserDiagrams);
+// Protected: uses authenticated user
+router.post('/', requireAuth, validateBody(uploadDiagramBodySchema), uploadDiagram);
+router.get('/', requireAuth, listUserDiagrams);
+router.get('/:id', requireAuth, getDiagram);
+router.put('/:id', requireAuth, validateBody(updateDiagramBodySchema), updateDiagramHandler);
+router.delete('/:id', requireAuth, deleteDiagramHandler);
 
 export default router;

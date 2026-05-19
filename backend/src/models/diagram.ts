@@ -61,3 +61,20 @@ export async function getDiagramsByUserId(user_id: number): Promise<Diagram[]> {
   const result = await pool.query('SELECT * FROM diagrams WHERE user_id = $1', [user_id]);
   return result.rows;
 }
+
+export async function getDiagramById(id: string): Promise<Diagram | null> {
+  const result = await pool.query('SELECT * FROM diagrams WHERE id = $1', [id]);
+  return result.rows[0] || null;
+}
+
+export async function updateDiagram(id: string, name: string, content: DiagramContent): Promise<Diagram> {
+  const result = await pool.query(
+    'UPDATE diagrams SET name = $1, content = $2, updated_at = current_timestamp WHERE id = $3 RETURNING *',
+    [name, content, id]
+  );
+  return result.rows[0];
+}
+
+export async function deleteDiagram(id: string): Promise<void> {
+  await pool.query('DELETE FROM diagrams WHERE id = $1', [id]);
+}
