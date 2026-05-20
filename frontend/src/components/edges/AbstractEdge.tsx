@@ -1,6 +1,5 @@
 import {
   BaseEdge,
-  Edge,
   EdgeLabelRenderer,
   getSmoothStepPath,
   getStraightPath,
@@ -9,8 +8,9 @@ import {
 } from '@xyflow/react';
 import { getEdgeParams } from '../utils/calculations';
 import generatePath from '../utils/generatePath';
-import { Dispatch, SetStateAction, useState } from 'react';
+import { useState } from 'react';
 import { IconButton } from '@mui/material';
+import { useEditorCanvas } from '../editorCanvasContext';
 
 import DeleteIcon from '@mui/icons-material/Delete';
 
@@ -26,10 +26,6 @@ type ExtendedEdgeProps = {
   isDashed: boolean;
   markerFilled?: boolean;
   markerType: MarkerTypes;
-}
-
-export type EdgePropsWithSetter = EdgeProps & {
-  setEdges: Dispatch<SetStateAction<Edge[]>>;
 }
 
 /**
@@ -50,9 +46,9 @@ export function AbstractEdge({
   markerFilled = false,
   markerType,
   style = { stroke: 'black' },
-  setEdges
-}: EdgePropsWithSetter & ExtendedEdgeProps): JSX.Element | null {
+}: EdgeProps & ExtendedEdgeProps): JSX.Element | null {
   const [mouseHover, setMouseHover] = useState<boolean>(false);
+  const { setEdges } = useEditorCanvas();
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
 

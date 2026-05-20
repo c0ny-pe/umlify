@@ -98,12 +98,12 @@ const useGlobalContext = (): GlobalContext => {
   const getUniqueNodeName = useCallback(
     (baseName: string, excludedName?: string) => {
       const usedNames = excludedName
-        ? nodeNames.filter((name) => name !== excludedName)
-        : nodeNames;
+        ? stableNodeNamesRef.current.filter((name) => name !== excludedName)
+        : stableNodeNamesRef.current;
 
       return getUniqueName(baseName, usedNames, DEFAULT_NODE_NAME);
     },
-    [nodeNames]
+    []
   );
 
   const setToast = useCallback((nextToast: ToastPayload | null) => {
