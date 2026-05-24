@@ -1,7 +1,13 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "./library.css";
+import { IconButton } from "@mui/material";
+import EditIcon from '@mui/icons-material/Edit';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { useAuth } from "../../hooks/useAuth";
+import { useGlobalContext } from "../../hooks/useGlobalContext";
 
 type Diagram = {
   id: string;
@@ -29,6 +35,7 @@ function formatDate(value: string) {
 
 export default function Library() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +67,86 @@ export default function Library() {
       cancelled = true;
     };
   }, []);
+  const ctx = useGlobalContext();
+
+  // Dialog state: rename, duplicate, delete
+  const [renameDialog, setRenameDialog] = useState<{ open: boolean; diagram?: Diagram }>({ open: false });
+  const [renameText, setRenameText] = useState<string>("");
+
+  const [duplicateDialog, setDuplicateDialog] = useState<{ open: boolean; diagram?: Diagram }>({ open: false });
+  const [duplicateText, setDuplicateText] = useState<string>("");
+
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; diagram?: Diagram }>({ open: false });
+
+  const openRename = (diagram: Diagram, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenameDialog({ open: true, diagram });
+    setRenameText(diagram.name ?? "");
+  };
+
+  const doRename = async () => {
+    if (!renameDialog.diagram) return;
+    const trimmed = renameText.trim();
+    if (!trimmed) {
+      ctx.setToast({ message: 'El nombre no puede estar vacío', severity: 'error' });
+      return;
+    }
+    try {
+      const { data } = await api.put(`/diagrams/${renameDialog.diagram.id}`, { name: trimmed, content: renameDialog.diagram.content });
+      setDiagrams((current) => current.map((d) => (d.id === renameDialog.diagram!.id ? (data ?? { ...d, name: trimmed }) : d)));
+      setRenameDialog({ open: false });
+      ctx.setToast({ message: 'Nombre actualizado', severity: 'success' });
+    } catch (err) {
+      console.error('Error renombrando diagrama', err);
+      ctx.setToast({ message: 'No se pudo renombrar el diagrama', severity: 'error' });
+    }
+  };
+
+  const openDuplicate = (diagram: Diagram, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDuplicateDialog({ open: true, diagram });
+    setDuplicateText(`Copia de ${diagram.name ?? 'Diagrama'}`);
+  };
+
+  const doDuplicate = async () => {
+    if (!duplicateDialog.diagram) return;
+    try {
+      const name = duplicateText.trim() || `Copia de ${duplicateDialog.diagram.name ?? 'Diagrama'}`;
+      const { data } = await api.post('/diagrams', { user_id: user?.id, name, content: duplicateDialog.diagram.content });
+      if (data?.id) {
+        navigate(`/editor/${data.id}`);
+        ctx.setToast({ message: 'Diagrama duplicado', severity: 'success' });
+      } else {
+        const { data: list } = await api.get<Diagram[]>('/diagrams');
+        setDiagrams(list);
+        ctx.setToast({ message: 'Diagrama duplicado', severity: 'success' });
+      }
+      setDuplicateDialog({ open: false });
+    } catch (err) {
+      console.error('Error duplicando diagrama', err);
+      ctx.setToast({ message: 'No se pudo duplicar el diagrama', severity: 'error' });
+    }
+  };
+
+  const openDelete = (diagram: Diagram, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleteDialog({ open: true, diagram });
+  };
+
+  const doDelete = async () => {
+    if (!deleteDialog.diagram) return;
+    try {
+      await api.delete(`/diagrams/${deleteDialog.diagram.id}`);
+      setDiagrams((current) => current.filter((d) => d.id !== deleteDialog.diagram!.id));
+      setDeleteDialog({ open: false });
+      ctx.setToast({ message: 'Diagrama eliminado', severity: 'success' });
+    } catch (err) {
+      console.error('Error eliminando diagrama', err);
+      ctx.setToast({ message: 'No se pudo eliminar el diagrama', severity: 'error' });
+    }
+  };
+
+  
 
   return (
     <div className="library-page">
@@ -83,13 +170,68 @@ export default function Library() {
                   <span>{nodesCount} nodos</span>
                   <span>{edgesCount} relaciones</span>
                 </div>
-                <h2 className="library-card-title">{diagram.name || "Sin titulo"}</h2>
+                <div className="library-card-header">
+                  <h2 className="library-card-title">{diagram.name || "Sin titulo"}</h2>
+                  <div className="library-card-actions">
+                    <IconButton size="small" onClick={(e) => { openRename(diagram, e); }} aria-label="Editar diagrama">
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" onClick={(e) => { openDuplicate(diagram, e); }} aria-label="Duplicar diagrama">
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" onClick={(e) => { openDelete(diagram, e); }} aria-label="Eliminar diagrama">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </div>
+                </div>
                 <p className="library-meta">Ult. modificacion: {formatDate(diagram.updated_at)}</p>
                 <p className="library-meta">Fecha de creacion: {formatDate(diagram.created_at)}</p>
               </article>
             );
           })}
         </section>
+      )}
+
+      {/* Rename dialog */}
+      {renameDialog.open && renameDialog.diagram && (
+        <div className="library-modal-overlay" onClick={() => setRenameDialog({ open: false })}>
+          <div className="library-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Renombrar diagrama</h3>
+            <input value={renameText} onChange={(e) => setRenameText(e.target.value)} className="library-modal-input" />
+            <div className="library-modal-actions">
+              <button onClick={() => setRenameDialog({ open: false })}>Cancelar</button>
+              <button onClick={doRename}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate dialog */}
+      {duplicateDialog.open && duplicateDialog.diagram && (
+        <div className="library-modal-overlay" onClick={() => setDuplicateDialog({ open: false })}>
+          <div className="library-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Duplicar diagrama</h3>
+            <input value={duplicateText} onChange={(e) => setDuplicateText(e.target.value)} className="library-modal-input" />
+            <div className="library-modal-actions">
+              <button onClick={() => setDuplicateDialog({ open: false })}>Cancelar</button>
+              <button onClick={doDuplicate}>Crear copia</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirm dialog */}
+      {deleteDialog.open && deleteDialog.diagram && (
+        <div className="library-modal-overlay" onClick={() => setDeleteDialog({ open: false })}>
+          <div className="library-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Eliminar diagrama</h3>
+            <p>¿Eliminar "{deleteDialog.diagram.name}"? Esta acción no se puede deshacer.</p>
+            <div className="library-modal-actions">
+              <button onClick={() => setDeleteDialog({ open: false })}>Cancelar</button>
+              <button onClick={doDelete}>Eliminar</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {!loading && !error && diagrams.length === 0 && (
