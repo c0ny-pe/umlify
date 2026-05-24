@@ -46,7 +46,7 @@ const ExportButton = ({ nodes }: { nodes: Node[] }): JSX.Element => {
 
   return (
     <Button onClick={handleDownload} startIcon={<Download />}>
-      Export diagram
+      PNG
     </Button>
   );
 }
