@@ -1,0 +1,244 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.navbar-export-trigger {
+  appearance: none;
+  border: 0;
+  border-radius: 0.75rem;
+  background: #35be5f;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+.navbar-export-menu-paper {
+  margin-top: 0.55rem;
+  min-width: 13rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(85, 157, 98, 0.24);
+  overflow: hidden;
+}
+
+.navbar-export-menu-header {
+  padding: 0.55rem 0.8rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #35513f;
+}
+
+.navbar-export-menu-divider {
+  border-color: rgba(85, 157, 98, 0.18);
+}
+
+.navbar-export-menu-actions {
+  display: flex;
+  flex-direction: column;
+  padding: 0.3rem;
+}
+
+.navbar-export-menu-actions .MuiButton-root {
+  justify-content: flex-start;
+  text-transform: none;
+  font-weight: 600;
+  color: #22313b;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.45rem;
+}
+
+.navbar-export-menu-actions .MuiButton-root:hover {
+  background: rgba(53, 190, 95, 0.1);
+}
+
+.navbar-export-menu-item {
+  min-height: 0;
+  padding: 0.55rem 0.7rem;
+  font-weight: 600;
+  color: #22313b;
+}
+
+.navbar-export-menu-item + .navbar-export-menu-item {
+  margin-top: 0.12rem;
+}
+
+.navbar-export-menu-item:hover {
+  background: rgba(53, 190, 95, 0.1);
+}
+
+.navbar-export-menu-item-danger {
+  color: #4c5d4f;
+}
+
+.navbar-avatar {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #35be5f;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.navbar-menu-paper {
+  margin-top: 0.7rem;
+  min-width: 14rem;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, #cfeecd 0%, #c4e8c1 100%);
+  border: 1px solid rgba(85, 157, 98, 0.28);
+  box-shadow: 0 18px 42px rgba(73, 131, 85, 0.24);
+  overflow: hidden;
+}
+
+.navbar-menu-header {
+  height: 2.9rem;
+  padding: 0 1rem;
+  display: block;
+  font-weight: 800;
+  font-size: 0.98rem;
+  line-height: 2.9rem;
+  color: #1d2a35;
+}
+
+.navbar-menu-divider {
+  border-color: rgba(85, 157, 98, 0.18);
+}
+
+.navbar-menu-item {
+  min-height: 0;
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: #22313b;
+  gap: 0.7rem;
+}
+
+.navbar-menu-item + .navbar-menu-item {
+  margin-top: 0.12rem;
+}
+
+.navbar-menu-item:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.navbar-menu-item-danger {
+  color: #4c5d4f;
+}
+
+.navbar-guest {
+  position: fixed;
+  top: 0.9rem;
+  left: 1.1rem;
+  width: auto;
+  padding: 0;
+  background: transparent;
+  border-bottom: 0;
+  box-shadow: none;
+}
+
+.brand-link-guest {
+  color: #1ea14d;
+  display: inline-block;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: clamp(1.65rem, 2.1vw, 2.1rem);
+  letter-spacing: 0.01em;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.navbar-authenticated {
+  min-height: 3.35rem;
+  border-bottom: 1px solid rgba(92, 74, 63, 0.14);
+  background: linear-gradient(135deg, rgba(255, 250, 242, 0.95), rgba(247, 241, 230, 0.9));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 12px 36px rgba(71, 54, 43, 0.08);
+}
+
+.brand-link-authenticated {
+  color: #1d2a35;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 1.05rem;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.navbar-user {
+  color: #5b4b41;
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.navbar-button {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.navbar-button:hover {
+  transform: translateY(-1px);
+}
+
+.navbar-button-secondary {
+  background: rgba(61, 90, 128, 0.1);
+  color: #30465f;
+}
+
+.navbar-button-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.navbar-button-disabled:hover {
+  transform: none;
+}
+
+@media (max-width: 720px) {
+  .navbar {
+    padding: 0.55rem 0.8rem;
+  }
+
+  .navbar-guest {
+    top: 0.8rem;
+    left: 0.9rem;
+    padding: 0;
+  }
+
+  .brand-link-guest {
+    font-size: 1.5rem;
+  }
+
+  .navbar-user {
+    display: none;
+  }
+
+  .navbar-avatar {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.9rem;
+  }
+}
