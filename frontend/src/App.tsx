@@ -3,14 +3,14 @@ import {
   useCallback,
   useMemo,
   useState,
-  SetStateAction,
-  Dispatch,
+  useRef,
 } from "react";
+import "./App.css";
+import api from "./services/api";
 import {
   ReactFlow,
   Background,
   Controls,
-  Panel,
   type Edge,
   type OnNodesChange,
   type OnEdgesChange,
@@ -26,36 +26,436 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useParams, useNavigate } from "react-router-dom";
 import ContextMenu from "./styles/menu";
-
-import StyledNode from "./components/nodes/StyledNode";
-import AggregationEdge from "./components/edges/AggregationEdge";
-import AssociationEdge from "./components/edges/AssociationEdge";
-import CompositionEdge from "./components/edges/CompositionEdge";
-import DependencyEdge from "./components/edges/DependencyEdge";
-import ImplementationEdge from "./components/edges/ImplementationEdge";
-import InheritanceEdge from "./components/edges/InheritanceEdge";
-
+import NavBar from "./components/NavBar";
+import Login from "./components/pages/Login";
+import SignUp from "./components/pages/Signup";
+import Library from "./components/pages/Library";
+import Settings from "./components/pages/Settings";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { useGlobalContext, type GlobalContext } from "./hooks/useGlobalContext";
-import UMLNode, { CustomNode, EdgeType } from "./model/UMLNode";
+import UMLNode, { EdgeType } from "./model/UMLNode";
 import Trait from "./model/Trait";
 import AbstractClass from "./model/AbstractClass";
 import ConcreteClass from "./model/ConcreteClass";
 import ExportButton from "./components/ExportButton";
 import DownloadJSON from "./components/DownloadJSON";
 import UploadJSON from "./components/UploadJSON";
-import { Button } from "@mui/material";
 import ToastAlert from "./components/ToastAlert";
-// import NavBar from "./components/NavBar";
-// import Login from "./components/pages/Login";
-// import SignUp from "./components/pages/Signup";
+import { hydrateDiagramData } from "./utils/diagramHydration";
+import { EditorCanvasProvider } from "./components/editorCanvasContext";
+import { edgeTypes, nodeTypes } from "./components/editorTypes";
 
-function App() {
+type EditorScreenProps = {
+  ctx: GlobalContext;
+  onNodesChange: OnNodesChange;
+  onNodesDelete: OnNodesDelete;
+  onEdgesChange: OnEdgesChange;
+  onConnectEnd: OnConnectEnd;
+  resetEditMode: () => void;
+};
+
+function EditorScreen({
+  ctx,
+  onNodesChange,
+  onNodesDelete,
+  onEdgesChange,
+  onConnectEnd,
+  resetEditMode,
+}: EditorScreenProps) {
+  const { diagramId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loadingDiagram, setLoadingDiagram] = useState(false);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const {
+    setNodes,
+    setEdges,
+    setNextNodeId,
+    setToast,
+  } = ctx;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const clearEditor = () => {
+      setNodes([]);
+      setEdges([]);
+      setNextNodeId(1);
+      resetEditMode();
+    };
+
+    const loadDiagram = async () => {
+      if (!diagramId) {
+        clearEditor();
+        setLoadingDiagram(false);
+        setLoadingError(null);
+        return;
+      }
+
+      setLoadingDiagram(true);
+      setLoadingError(null);
+      clearEditor();
+
+      try {
+        const { data } = await api.get(`/diagrams/${diagramId}`);
+        const hydrated = hydrateDiagramData(data.content);
+
+        if (cancelled) {
+          return;
+        }
+
+        setNodes(hydrated.nodes);
+        setEdges(hydrated.edges);
+        setNextNodeId(hydrated.nextNodeId);
+        resetEditMode();
+      } catch {
+        if (!cancelled) {
+          setLoadingError("No pudimos cargar el diagrama guardado.");
+          setToast({
+            message: "No pudimos cargar el diagrama guardado.",
+            severity: "error",
+          });
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingDiagram(false);
+        }
+      }
+    };
+
+    loadDiagram();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [diagramId]);
+
+  // Autosave debounced
+  const saveTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Clear previous timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Don't autosave if no diagram ID or still loading
+    if (!diagramId || loadingDiagram) {
+      return;
+    }
+
+    // Set new debounced save
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        const payload = {
+          nodes: ctx.nodes.map((n) => ({
+            id: String(n.id),
+            name: n.name,
+            classType: n.classType,
+            fields: n.fields,
+            methods: n.methods,
+            x: n.x,
+            y: n.y,
+          })),
+          edges: ctx.edges.map((e) => ({
+            source: e.source,
+            target: e.target,
+            sourceHandle: e.sourceHandle,
+            targetHandle: e.targetHandle,
+            type: (e as any).type,
+          })),
+        };
+
+        await api.put(`/diagrams/${diagramId}`, {
+          name: "Diagrama",
+          content: payload,
+        });
+      } catch (err) {
+        console.error("Error saving diagram:", err);
+      }
+    }, 2000); // Debounce: save 2 seconds after last change
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [ctx.nodes, ctx.edges, diagramId, loadingDiagram]);
+
+  return (
+    <div className="canvas-shell">
+      {loadingDiagram && (
+        <p className="library-message">Cargando diagrama guardado...</p>
+      )}
+      {loadingError && (
+        <p className="library-message library-error">{loadingError}</p>
+      )}
+      <div
+        className="reactflow-wrapper"
+        ref={ctx.reactFlowWrapper}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          ctx.setRightClicked(true);
+
+          const reactFlowBounds = ctx.reactFlowWrapper.current?.getBoundingClientRect();
+
+          if (!ctx.reactFlowInstance || !reactFlowBounds) {
+            return;
+          }
+
+          const position = ctx.reactFlowInstance.screenToFlowPosition({
+            x: e.clientX - reactFlowBounds.left,
+            y: e.clientY - reactFlowBounds.top,
+          });
+
+          ctx.setRelativeMouseCoordinate(position);
+          ctx.setMouseCoordinate({ x: e.clientX, y: e.clientY });
+        }}
+      >
+        <>
+          {ctx.rightClicked && ctx.isMenuContextActive && (
+            <ContextMenu top={ctx.mouseCoordinate.y} left={ctx.mouseCoordinate.x}>
+              <>
+                <ul>
+                  <li
+                    onClick={async () => {
+                      const uniqueName = ctx.getUniqueNodeName(ctx.DEFAULT_NODE_NAME);
+
+                      const newNode = new Trait(
+                        ctx.generateNodeId(),
+                        uniqueName,
+                        ctx.DEFAULT_NODE_METHODS,
+                        ctx.DEFAULT_NODE_FIELDS,
+                        ctx.relativeMouseCoordinate.x,
+                        ctx.relativeMouseCoordinate.y
+                      );
+
+                      // Build the complete nodes array upfront
+                      const allNodes = [...ctx.nodes, newNode];
+
+                      // Update local state immediately
+                      ctx.setNodes(() => allNodes);
+
+                      // If there's no diagramId yet, create a new diagram on the server
+                      if (!diagramId) {
+                        try {
+                          const payload = {
+                            nodes: allNodes.map((n) => ({
+                              id: String(n.id),
+                              name: n.name,
+                              classType: n.classType,
+                              fields: n.fields,
+                              methods: n.methods,
+                              x: n.x,
+                              y: n.y,
+                            })),
+                            edges: ctx.edges.map((e) => ({
+                              source: e.source,
+                              target: e.target,
+                              sourceHandle: e.sourceHandle,
+                              targetHandle: e.targetHandle,
+                              type: (e as any).type,
+                            })),
+                          };
+
+                          const { data } = await api.post("/diagrams", {
+                            user_id: user?.id,
+                            name: uniqueName,
+                            content: payload,
+                          });
+
+                          navigate(`/editor/${data.id}`);
+                        } catch (err) {
+                          ctx.setToast({ message: "No se pudo crear el diagrama.", severity: "error" });
+                        }
+                      }
+                    }}
+                  >
+                    Add Trait
+                  </li>
+                  <li
+                    onClick={async () => {
+                      const uniqueName = ctx.getUniqueNodeName(ctx.DEFAULT_NODE_NAME);
+
+                      const newNode = new AbstractClass(
+                        ctx.generateNodeId(),
+                        uniqueName,
+                        ctx.DEFAULT_NODE_METHODS,
+                        ctx.DEFAULT_NODE_FIELDS,
+                        ctx.relativeMouseCoordinate.x,
+                        ctx.relativeMouseCoordinate.y
+                      );
+
+                      // Build the complete nodes array upfront
+                      const allNodes = [...ctx.nodes, newNode];
+
+                      ctx.setNodes(() => allNodes);
+
+                      if (!diagramId) {
+                        try {
+                          const payload = {
+                            nodes: allNodes.map((n) => ({
+                              id: String(n.id),
+                              name: n.name,
+                              classType: n.classType,
+                              fields: n.fields,
+                              methods: n.methods,
+                              x: n.x,
+                              y: n.y,
+                            })),
+                            edges: ctx.edges.map((e) => ({
+                              source: e.source,
+                              target: e.target,
+                              sourceHandle: e.sourceHandle,
+                              targetHandle: e.targetHandle,
+                              type: (e as any).type,
+                            })),
+                          };
+
+                          const { data } = await api.post("/diagrams", {
+                            user_id: user?.id,
+                            name: uniqueName,
+                            content: payload,
+                          });
+
+                          navigate(`/editor/${data.id}`);
+                        } catch (err) {
+                          ctx.setToast({ message: "No se pudo crear el diagrama.", severity: "error" });
+                        }
+                      }
+                    }}
+                  >
+                    Add Abstract Class
+                  </li>
+                  <li
+                    onClick={async () => {
+                      const uniqueName = ctx.getUniqueNodeName(ctx.DEFAULT_NODE_NAME);
+
+                      const newNode = new ConcreteClass(
+                        ctx.generateNodeId(),
+                        uniqueName,
+                        ctx.DEFAULT_NODE_METHODS,
+                        ctx.DEFAULT_NODE_FIELDS,
+                        ctx.relativeMouseCoordinate.x,
+                        ctx.relativeMouseCoordinate.y
+                      );
+
+                      // Build the complete nodes array upfront
+                      const allNodes = [...ctx.nodes, newNode];
+
+                      ctx.setNodes(() => allNodes);
+
+                      if (!diagramId) {
+                        try {
+                          const payload = {
+                            nodes: allNodes.map((n) => ({
+                              id: String(n.id),
+                              name: n.name,
+                              classType: n.classType,
+                              fields: n.fields,
+                              methods: n.methods,
+                              x: n.x,
+                              y: n.y,
+                            })),
+                            edges: ctx.edges.map((e) => ({
+                              source: e.source,
+                              target: e.target,
+                              sourceHandle: e.sourceHandle,
+                              targetHandle: e.targetHandle,
+                              type: (e as any).type,
+                            })),
+                          };
+
+                          const { data } = await api.post("/diagrams", {
+                            user_id: user?.id,
+                            name: uniqueName,
+                            content: payload,
+                          });
+
+                          navigate(`/editor/${data.id}`);
+                        } catch (err) {
+                          ctx.setToast({ message: "No se pudo crear el diagrama.", severity: "error" });
+                        }
+                      }
+                    }}
+                  >
+                    Add Concrete Class
+                  </li>
+                </ul>
+              </>
+            </ContextMenu>
+          )}
+
+          <ReactFlow
+            nodes={ctx.nodes.map((n) => n.getNode())}
+            edges={ctx.edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            onNodesChange={onNodesChange}
+            onNodesDelete={onNodesDelete}
+            onEdgesChange={onEdgesChange}
+            onInit={ctx.setReactFlowInstance}
+            onConnectEnd={onConnectEnd}
+            connectionMode={ConnectionMode.Loose}
+            fitView={false}
+          >
+            <Background />
+            <Controls />
+          </ReactFlow>
+          <ToastAlert
+            toastKey={ctx.toast?.version}
+            open={Boolean(ctx.toast)}
+            message={ctx.toast?.message ?? null}
+            severity={ctx.toast?.severity ?? "error"}
+            onClose={() => ctx.setToast(null)}
+          />
+        </>
+      </div>
+    </div>
+  );
+}
+function AppContent() {
   const ctx: GlobalContext = useGlobalContext();
+  const { isAuthenticated } = useAuth();
   const [editModeByNodeId, setEditModeByNodeId] = useState<
     Record<number, boolean>
   >({});
+  const getNodeEditMode = useCallback(
+    (nodeId: number) => Boolean(editModeByNodeId[nodeId]),
+    [editModeByNodeId]
+  );
+
+  const setNodeEditMode = useCallback(
+    (nodeId: number, nextEditMode: boolean) => {
+      setEditModeByNodeId((currentEditModeById) => ({
+        ...currentEditModeById,
+        [nodeId]: nextEditMode,
+      }));
+    },
+    []
+  );
+
+  const onDuplicateName = useCallback(
+    (attemptedName: string) => {
+      ctx.setToast({
+        message: `"${attemptedName}" ya existe. No se guardó.`,
+        severity: "error",
+      });
+    },
+    [ctx]
+  );
+
+  const onEmptyName = useCallback(
+    (message: string) => {
+      ctx.setToast({
+        message,
+        severity: "error",
+      });
+    },
+    [ctx]
+  );
 
   /** This handles the right-clicks on the canvas. */
   // Reference: https://blog.logrocket.com/creating-react-context-menu/
@@ -329,264 +729,72 @@ function App() {
     }
   };
 
-  /** Custom node styling under the StyledNode component. */
-  // Empty dependences causes this to not rerender.
+  const editorActions = (
+    <>
+      <UploadJSON
+        setNodes={ctx.setNodes}
+        setNextNodeId={ctx.setNextNodeId}
+        setEdges={ctx.setEdges}
+      />
+      <DownloadJSON nodes={ctx.nodes} edges={ctx.edges} />
+      <ExportButton nodes={ctx.nodes.map((n) => n.getNode())} />
+    </>
+  );
 
-  const nodeTypes: NodeTypes = useMemo(() => {
-    const createSetEditModeForNode = (
-      nodeId: number
-    ): Dispatch<SetStateAction<boolean>> => {
-      return (nextEditMode) => {
-        setEditModeByNodeId((currentEditModeById) => {
-          const currentValue = Boolean(currentEditModeById[nodeId]);
-          const resolvedValue =
-            typeof nextEditMode === "function"
-              ? nextEditMode(currentValue)
-              : nextEditMode;
+  const resetEditMode = useCallback(() => {
+    setEditModeByNodeId({});
+  }, []);
 
-          return {
-            ...currentEditModeById,
-            [nodeId]: resolvedValue,
-          };
-        });
-      };
-    };
-
-    return {
-      abstractClass: (props: NodeProps<CustomNode>) => (
-        <StyledNode
-          setNodes={ctx.setNodes}
-          setEdges={ctx.setEdges}
-          node={props}
-          nodeNames={ctx.nodeNames}
-          editMode={Boolean(editModeByNodeId[props.data.id])}
-          setEditMode={createSetEditModeForNode(props.data.id)}
-          getUniqueNodeName={ctx.getUniqueNodeName}
-          onDuplicateName={(attemptedName) => {
-            ctx.setToast({
-              message: `"${attemptedName}" ya existe. No se guardó.`,
-              severity: "error",
-            });
-          }}
-          onEmptyName={(message) => {
-            ctx.setToast({
-              message,
-              severity: "error",
-            });
-          }}
-        />
-      ),
-      concreteClass: (props: NodeProps<CustomNode>) => (
-        <StyledNode
-          setNodes={ctx.setNodes}
-          setEdges={ctx.setEdges}
-          node={props}
-          nodeNames={ctx.nodeNames}
-          editMode={Boolean(editModeByNodeId[props.data.id])}
-          setEditMode={createSetEditModeForNode(props.data.id)}
-          getUniqueNodeName={ctx.getUniqueNodeName}
-          onDuplicateName={(attemptedName) => {
-            ctx.setToast({
-              message: `"${attemptedName}" ya existe. No se guardó.`,
-              severity: "error",
-            });
-          }}
-          onEmptyName={(message) => {
-            ctx.setToast({
-              message,
-              severity: "error",
-            });
-          }}
-        />
-      ),
-      trait: (props: NodeProps<CustomNode>) => (
-        <StyledNode
-          setNodes={ctx.setNodes}
-          setEdges={ctx.setEdges}
-          node={props}
-          nodeNames={ctx.nodeNames}
-          editMode={Boolean(editModeByNodeId[props.data.id])}
-          setEditMode={createSetEditModeForNode(props.data.id)}
-          getUniqueNodeName={ctx.getUniqueNodeName}
-          onDuplicateName={(attemptedName) => {
-            ctx.setToast({
-              message: `"${attemptedName}" ya existe. No se guardó.`,
-              severity: "error",
-            });
-          }}
-          onEmptyName={(message) => {
-            ctx.setToast({
-              message,
-              severity: "error",
-            });
-          }}
-        />
-      ),
-    };
-  }, [
-    ctx.nodeNames,
-    ctx.getUniqueNodeName,
-    ctx.setEdges,
-    ctx.setNodes,
-    editModeByNodeId,
-  ]);
-
-  const edgeTypes: EdgeTypes = useMemo(() => {
-    const setterProperty = { setEdges: ctx.setEdges };
-    return {
-      aggregation: (props) => AggregationEdge({ ...props, ...setterProperty }),
-      association: (props) => AssociationEdge({ ...props, ...setterProperty }),
-      composition: (props) => CompositionEdge({ ...props, ...setterProperty }),
-      dependency: (props) => DependencyEdge({ ...props, ...setterProperty }),
-      implementation: (props) =>
-        ImplementationEdge({ ...props, ...setterProperty }),
-      inheritance: (props) => InheritanceEdge({ ...props, ...setterProperty }),
-    };
-  }, [ctx.setEdges]);
+  const editorCanvasValue = useMemo(
+    () => ({
+      setNodes: ctx.setNodes,
+      setEdges: ctx.setEdges,
+      nodeNames: ctx.nodeNames,
+      getUniqueNodeName: ctx.getUniqueNodeName,
+      getNodeEditMode,
+      setNodeEditMode,
+      onDuplicateName,
+      onEmptyName,
+    }),
+    [
+      ctx.nodeNames,
+      ctx.getUniqueNodeName,
+      ctx.setEdges,
+      ctx.setNodes,
+      getNodeEditMode,
+      onDuplicateName,
+      onEmptyName,
+      setNodeEditMode,
+    ]
+  );
 
   return (
     <BrowserRouter>
+      <NavBar editorActions={editorActions} />
       <Routes>
-        <Route path="/" element={
-
-          <div
-            ref={ctx.reactFlowWrapper}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              ctx.setRightClicked(true);
-
-              const reactFlowBounds =
-                ctx.reactFlowWrapper.current?.getBoundingClientRect();
-
-              if (!ctx.reactFlowInstance || !reactFlowBounds) {
-                return;
-              }
-
-              const position = ctx.reactFlowInstance.screenToFlowPosition({
-                x: e.clientX - reactFlowBounds.left,
-                y: e.clientY - reactFlowBounds.top,
-              });
-
-              ctx.setRelativeMouseCoordinate(position);
-              ctx.setMouseCoordinate({ x: e.clientX, y: e.clientY });
-            }}
-            style={{ height: "100%" }}
-          >
-            <>
-              {/* <NavBar /> */}
-              {ctx.rightClicked && ctx.isMenuContextActive && (
-                <ContextMenu top={ctx.mouseCoordinate.y} left={ctx.mouseCoordinate.x}>
-                  <>
-                    <ul>
-                      <li
-                        onClick={() => {
-                          const uniqueName = ctx.getUniqueNodeName(
-                            ctx.DEFAULT_NODE_NAME
-                          );
-
-                          ctx.setNodes((oldNodes) => {
-                            const newNode = new Trait(
-                              ctx.generateNodeId(),
-                              uniqueName,
-                              ctx.DEFAULT_NODE_METHODS,
-                              ctx.DEFAULT_NODE_FIELDS,
-                              ctx.relativeMouseCoordinate.x,
-                              ctx.relativeMouseCoordinate.y
-                            );
-                            return [...oldNodes, newNode];
-                          });
-                        }}
-                      >
-                        Add Trait
-                      </li>
-                      <li
-                        onClick={() => {
-                          const uniqueName = ctx.getUniqueNodeName(
-                            ctx.DEFAULT_NODE_NAME
-                          );
-
-                          ctx.setNodes((oldNodes) => {
-                            const newNode = new AbstractClass(
-                              ctx.generateNodeId(),
-                              uniqueName,
-                              ctx.DEFAULT_NODE_METHODS,
-                              ctx.DEFAULT_NODE_FIELDS,
-                              ctx.relativeMouseCoordinate.x,
-                              ctx.relativeMouseCoordinate.y
-                            );
-                            return [...oldNodes, newNode];
-                          });
-                        }}
-                      >
-                        Add Abstract Class
-                      </li>
-                      <li
-                        onClick={() => {
-                          const uniqueName = ctx.getUniqueNodeName(
-                            ctx.DEFAULT_NODE_NAME
-                          );
-
-                          ctx.setNodes((oldNodes) => {
-                            const newNode = new ConcreteClass(
-                              ctx.generateNodeId(),
-                              uniqueName,
-                              ctx.DEFAULT_NODE_METHODS,
-                              ctx.DEFAULT_NODE_FIELDS,
-                              ctx.relativeMouseCoordinate.x,
-                              ctx.relativeMouseCoordinate.y
-                            );
-                            return [...oldNodes, newNode];
-                          });
-                        }}
-                      >
-                        Add Concrete Class
-                      </li>
-                    </ul>
-                  </>
-                </ContextMenu>
-              )}
-
-              <ReactFlow
-                nodes={ctx.nodes.map((n) => n.getNode())}
-                edges={ctx.edges}
-                nodeTypes={nodeTypes}
-                edgeTypes={edgeTypes}
-                onNodesChange={onNodesChange}
-                onNodesDelete={onNodesDelete}
-                onEdgesChange={onEdgesChange}
-                onInit={ctx.setReactFlowInstance}
-                onConnectEnd={onConnectEnd}
-                connectionMode={ConnectionMode.Loose}
-                fitView={false}
-              >
-                <Panel style={{ backgroundColor: "white" }} position="top-right">
-                  <UploadJSON
-                    setNodes={ctx.setNodes}
-                    setNextNodeId={ctx.setNextNodeId}
-                    setEdges={ctx.setEdges}
-                  />
-                  <DownloadJSON nodes={ctx.nodes} edges={ctx.edges} />
-                  <ExportButton nodes={ctx.nodes.map((n) => n.getNode())} />
-                  {/* <Button>Log in</Button> */}
-                  {/* <Button style={{ backgroundColor: 'blue', color: 'white' }}>Sign up</Button> */}
-                </Panel>
-                <Background />
-                <Controls />
-              </ReactFlow>
-              <ToastAlert
-                toastKey={ctx.toast?.version}
-                open={Boolean(ctx.toast)}
-                message={ctx.toast?.message ?? null}
-                severity={ctx.toast?.severity ?? "error"}
-                onClose={() => ctx.setToast(null)}
-              />
-            </>
-          </div>
-        } />
-        {/* <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} /> */}
+        <Route path="/" element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
+        <Route
+          path="/editor"
+          element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/editor/:diagramId"
+          element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+        />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+        <Route path="/signup" element={isAuthenticated ? <Navigate to="/" replace /> : <SignUp />} />
+        <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />} />
+        <Route path="/register" element={<Navigate to="/signup" replace />} />
       </Routes>
     </BrowserRouter>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
