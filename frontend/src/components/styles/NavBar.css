@@ -14,6 +14,67 @@
   gap: 0.55rem;
 }
 
+.navbar-export-with-title {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.navbar-diagram-title {
+  white-space: nowrap;
+  margin-left: 0.25rem;
+  font-size: 1rem;
+  color: #1d2a35;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navbar-diagram-title-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.navbar-diagram-editing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.navbar-diagram-edit-button {
+  padding: 2px;
+  color: rgba(29,42,53,0.9);
+}
+
+.navbar-diagram-title-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+  color: inherit;
+  cursor: pointer;
+}
+
+.navbar-diagram-title-input {
+  font-size: 1rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(34,49,59,0.12);
+  background: #fff;
+  /* Keep input narrow enough so confirm/cancel buttons remain visible inside the title container */
+  max-width: calc(22ch - 6.5rem);
+}
+
+.navbar-diagram-confirm-button,
+.navbar-diagram-cancel-button {
+  padding: 4px;
+  color: rgba(29,42,53,0.9);
+  background: transparent;
+  border-radius: 6px;
+}
+
 .navbar-export-trigger {
   appearance: none;
   border: 0;

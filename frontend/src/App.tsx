@@ -54,6 +54,8 @@ type EditorScreenProps = {
   onEdgesChange: OnEdgesChange;
   onConnectEnd: OnConnectEnd;
   resetEditMode: () => void;
+  setDiagramTitle?: (title: string | null) => void;
+  setDiagramId?: (id: string | null) => void;
 };
 
 function EditorScreen({
@@ -63,6 +65,8 @@ function EditorScreen({
   onEdgesChange,
   onConnectEnd,
   resetEditMode,
+  setDiagramTitle,
+  setDiagramId,
 }: EditorScreenProps) {
   const { diagramId } = useParams();
   const navigate = useNavigate();
@@ -100,6 +104,9 @@ function EditorScreen({
 
       try {
         const { data } = await api.get(`/diagrams/${diagramId}`);
+        // Update parent/app with the diagram name so NavBar can display it
+        if (setDiagramTitle) setDiagramTitle(data.name ?? null);
+        if (setDiagramId) setDiagramId(data.id ?? null);
         const hydrated = hydrateDiagramData(data.content);
 
         if (cancelled) {
@@ -262,7 +269,7 @@ function EditorScreen({
 
                           const { data } = await api.post("/diagrams", {
                             user_id: user?.id,
-                            name: uniqueName,
+                            name: "Diagrama sin nombre",
                             content: payload,
                           });
 
@@ -316,7 +323,7 @@ function EditorScreen({
 
                           const { data } = await api.post("/diagrams", {
                             user_id: user?.id,
-                            name: uniqueName,
+                            name: "Diagrama sin nombre",
                             content: payload,
                           });
 
@@ -370,7 +377,7 @@ function EditorScreen({
 
                           const { data } = await api.post("/diagrams", {
                             user_id: user?.id,
-                            name: uniqueName,
+                            name: "Diagrama sin nombre",
                             content: payload,
                           });
 
@@ -419,6 +426,8 @@ function EditorScreen({
 function AppContent() {
   const ctx: GlobalContext = useGlobalContext();
   const { isAuthenticated } = useAuth();
+  const [diagramTitle, setDiagramTitle] = useState<string | null>(null);
+  const [diagramIdState, setDiagramIdState] = useState<string | null>(null);
   const [editModeByNodeId, setEditModeByNodeId] = useState<
     Record<number, boolean>
   >({});
@@ -770,16 +779,44 @@ function AppContent() {
 
   return (
     <BrowserRouter>
-      <NavBar editorActions={editorActions} />
+      <NavBar editorActions={editorActions} diagramTitle={diagramTitle} onDiagramTitleChange={async (nextTitle: string) => {
+        // Update title optimistically and trigger server update with current content
+        setDiagramTitle(nextTitle);
+        if (!diagramIdState) return;
+        try {
+          const payload = {
+            nodes: ctx.nodes.map((n) => ({
+              id: String(n.id),
+              name: n.name,
+              classType: n.classType,
+              fields: n.fields,
+              methods: n.methods,
+              x: n.x,
+              y: n.y,
+            })),
+            edges: ctx.edges.map((e) => ({
+              source: e.source,
+              target: e.target,
+              sourceHandle: e.sourceHandle,
+              targetHandle: e.targetHandle,
+              type: (e as any).type,
+            })),
+          };
+
+          await api.put(`/diagrams/${diagramIdState}`, { name: nextTitle, content: payload });
+        } catch (err) {
+          ctx.setToast({ message: 'No se pudo guardar el nombre del diagrama.', severity: 'error' });
+        }
+      }} />
       <Routes>
         <Route path="/" element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
         <Route
           path="/editor"
-          element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
         />
         <Route
-          path="/editor/:diagramId"
-          element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+            path="/editor/:diagramId"
+            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
         />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/signup" element={isAuthenticated ? <Navigate to="/" replace /> : <SignUp />} />

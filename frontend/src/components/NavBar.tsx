@@ -1,20 +1,95 @@
 import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import EditIcon from '@mui/icons-material/Edit';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import { IconButton as MuiIconButton } from '@mui/material';
+import { forwardRef, useImperativeHandle } from 'react';
 import { Menu, MenuItem, Divider, IconButton } from '@mui/material';
 import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import './styles/NavBar.css';
 import { useAuth } from '../hooks/useAuth';
+import { useRef, useEffect } from 'react';
+
+type InlineEditableTitleProps = {
+        value: string;
+        onChange: (next: string) => void;
+};
+
+const InlineEditableTitle = forwardRef<{ focusEdit: () => void }, InlineEditableTitleProps>(
+    ({ value, onChange }, ref) => {
+        const [editing, setEditing] = useState(false);
+        const [text, setText] = useState(value);
+        const inputRef = useRef<HTMLInputElement | null>(null);
+
+        useEffect(() => setText(value), [value]);
+
+        useEffect(() => {
+            if (editing && inputRef.current) {
+                inputRef.current.focus();
+                inputRef.current.select();
+            }
+        }, [editing]);
+
+        useImperativeHandle(ref, () => ({
+            focusEdit: () => setEditing(true),
+        }));
+
+        const confirm = () => {
+            setEditing(false);
+            const trimmed = text.trim();
+            if (trimmed && trimmed !== value) {
+                onChange(trimmed);
+            } else {
+                setText(value);
+            }
+        };
+
+        const cancel = () => {
+            setText(value);
+            setEditing(false);
+        };
+
+        return editing ? (
+            <div className="navbar-diagram-editing">
+                <input
+                    ref={inputRef}
+                    className="navbar-diagram-title-input"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') confirm();
+                        if (e.key === 'Escape') cancel();
+                    }}
+                />
+                <MuiIconButton size="small" className="navbar-diagram-confirm-button" onClick={confirm} aria-label="Confirmar nombre">
+                    <CheckIcon fontSize="small" />
+                </MuiIconButton>
+                <MuiIconButton size="small" className="navbar-diagram-cancel-button" onClick={cancel} aria-label="Cancelar edición">
+                    <CloseIcon fontSize="small" />
+                </MuiIconButton>
+            </div>
+        ) : (
+            <span className="navbar-diagram-title-text">{value}</span>
+        );
+    }
+);
+InlineEditableTitle.displayName = 'InlineEditableTitle';
 
 type NavBarProps = {
     editorActions?: ReactNode;
+    diagramTitle?: string | null;
+    onDiagramTitleChange?: (title: string) => void;
+    diagramId?: string | null;
 };
 
-const NavBar = ({ editorActions }: NavBarProps) => {
+const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarProps) => {
     const { user, isAuthenticated, logout } = useAuth();
     const { pathname } = useLocation();
     const navigate = useNavigate();
+    const titleRef = useRef<{ focusEdit: () => void } | null>(null);
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
     const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -59,16 +134,43 @@ const NavBar = ({ editorActions }: NavBarProps) => {
                 <Link to="/" className="brand-link-authenticated">
                     UMLify
                 </Link>
+                {/* no left-side title - title will appear on the right next to Export */}
                 <div className="navbar-right">
                     {isEditorView && editorActions && (
                         <>
-                            <button
-                                type="button"
-                                className="navbar-export-trigger"
-                                onClick={handleOpenExportMenu}
-                            >
-                                Exportar
-                            </button>
+                            <div className="navbar-export-with-title">
+                                <div className="navbar-diagram-title">
+                                    {onDiagramTitleChange ? (
+                                        <div className="navbar-diagram-title-inner">
+                                            <InlineEditableTitle
+                                                ref={titleRef}
+                                                value={diagramTitle ?? 'Diagrama sin título'}
+                                                onChange={onDiagramTitleChange}
+                                            />
+                                            <MuiIconButton
+                                                size="small"
+                                                aria-label="Editar nombre"
+                                                className="navbar-diagram-edit-button"
+                                                onClick={() => {
+                                                    titleRef.current?.focusEdit();
+                                                }}
+                                            >
+                                                <EditIcon fontSize="small" />
+                                            </MuiIconButton>
+                                        </div>
+                                    ) : (
+                                        <span>{diagramTitle ?? 'Diagrama sin título'}</span>
+                                    )}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    className="navbar-export-trigger"
+                                    onClick={handleOpenExportMenu}
+                                >
+                                    Exportar
+                                </button>
+                            </div>
                             <Menu
                                 anchorEl={exportAnchorEl}
                                 open={exportMenuOpen}
