@@ -91,10 +91,8 @@ const NavBar = ({ editorActions }: NavBarProps) => {
                             <span className="navbar-user">Hola, {user?.username}</span>
                             <button
                                 type="button"
-                                className="navbar-button navbar-button-secondary navbar-button-disabled"
-                                disabled
-                                aria-disabled="true"
-                                title="Ajustes aún no disponible"
+                                className="navbar-button navbar-button-secondary"
+                                onClick={() => navigate('/settings')}
                             >
                                 Ajustes
                             </button>
