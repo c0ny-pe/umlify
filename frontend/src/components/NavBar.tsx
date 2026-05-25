@@ -175,6 +175,7 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
                                 anchorEl={exportAnchorEl}
                                 open={exportMenuOpen}
                                 onClose={handleCloseExportMenu}
+                                keepMounted
                                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                                 MenuListProps={{ sx: { p: 0 } }}

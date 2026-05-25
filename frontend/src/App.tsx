@@ -40,12 +40,32 @@ import Trait from "./model/Trait";
 import AbstractClass from "./model/AbstractClass";
 import ConcreteClass from "./model/ConcreteClass";
 import ExportButton from "./components/ExportButton";
-import DownloadJSON from "./components/DownloadJSON";
-import UploadJSON from "./components/UploadJSON";
+import ExportScalaButton, { type DiagramPayload } from "./components/ExportScalaButton";
 import ToastAlert from "./components/ToastAlert";
 import { hydrateDiagramData } from "./utils/diagramHydration";
 import { EditorCanvasProvider } from "./components/editorCanvasContext";
 import { edgeTypes, nodeTypes } from "./components/editorTypes";
+
+function buildDiagramPayload(nodes: GlobalContext["nodes"], edges: GlobalContext["edges"]): DiagramPayload {
+  return {
+    nodes: nodes.map((n) => ({
+      id: String(n.id),
+      name: n.name,
+      classType: n.classType,
+      fields: n.fields,
+      methods: n.methods,
+      x: n.x,
+      y: n.y,
+    })),
+    edges: edges.map((e) => ({
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.sourceHandle,
+      targetHandle: e.targetHandle,
+      type: (e as any).type,
+    })),
+  };
+}
 
 type EditorScreenProps = {
   ctx: GlobalContext;
@@ -92,7 +112,6 @@ function EditorScreen({
 
     const loadDiagram = async () => {
       if (!diagramId) {
-        clearEditor();
         setLoadingDiagram(false);
         setLoadingError(null);
         return;
@@ -740,13 +759,11 @@ function AppContent() {
 
   const editorActions = (
     <>
-      <UploadJSON
-        setNodes={ctx.setNodes}
-        setNextNodeId={ctx.setNextNodeId}
-        setEdges={ctx.setEdges}
+      <ExportScalaButton
+        payload={buildDiagramPayload(ctx.nodes, ctx.edges)}
+        onToast={ctx.setToast}
       />
-      <DownloadJSON nodes={ctx.nodes} edges={ctx.edges} />
-      <ExportButton nodes={ctx.nodes.map((n) => n.getNode())} />
+      <ExportButton nodes={ctx.nodes.map((node) => node.getNode())} />
     </>
   );
 
@@ -784,26 +801,7 @@ function AppContent() {
         setDiagramTitle(nextTitle);
         if (!diagramIdState) return;
         try {
-          const payload = {
-            nodes: ctx.nodes.map((n) => ({
-              id: String(n.id),
-              name: n.name,
-              classType: n.classType,
-              fields: n.fields,
-              methods: n.methods,
-              x: n.x,
-              y: n.y,
-            })),
-            edges: ctx.edges.map((e) => ({
-              source: e.source,
-              target: e.target,
-              sourceHandle: e.sourceHandle,
-              targetHandle: e.targetHandle,
-              type: (e as any).type,
-            })),
-          };
-
-          await api.put(`/diagrams/${diagramIdState}`, { name: nextTitle, content: payload });
+          await api.put(`/diagrams/${diagramIdState}`, { name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
         } catch (err) {
           ctx.setToast({ message: 'No se pudo guardar el nombre del diagrama.', severity: 'error' });
         }
