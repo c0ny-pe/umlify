@@ -235,16 +235,74 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
                             >
                                 <div className="navbar-export-menu-header">{userLabel || 'Usuario'}</div>
                                 <Divider className="navbar-export-menu-divider" />
-                                <MenuItem className="navbar-export-menu-item" onClick={() => handleNavigate('/')}>
+                                <MenuItem
+                                    className="navbar-export-menu-item"
+                                    onClick={() => handleNavigate('/')}
+                                    sx={{
+                                        minHeight: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'flex-start',
+                                        px: 0.85,
+                                        py: 0.75,
+                                        columnGap: 1.1,
+                                        borderRadius: '0.45rem',
+                                        fontSize: '0.9rem',
+                                        lineHeight: 1.5,
+                                        fontWeight: 600,
+                                        color: '#22313b',
+                                        fontFamily: 'Helvetica, Arial, sans-serif',
+                                        '& svg': { fontSize: '1.2rem', flexShrink: 0 },
+                                    }}
+                                >
                                     <FolderOpenOutlinedIcon />
-                                    Biblioteca
+                                    <span>Biblioteca</span>
                                 </MenuItem>
-                                <MenuItem className="navbar-export-menu-item" onClick={() => handleNavigate('/settings')}>
+                                <MenuItem
+                                    className="navbar-export-menu-item"
+                                    onClick={() => handleNavigate('/settings')}
+                                    sx={{
+                                        minHeight: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'flex-start',
+                                        px: 0.85,
+                                        py: 0.75,
+                                        columnGap: 1.1,
+                                        borderRadius: '0.45rem',
+                                        fontSize: '0.9rem',
+                                        lineHeight: 1.5,
+                                        fontWeight: 600,
+                                        color: '#22313b',
+                                        fontFamily: 'Helvetica, Arial, sans-serif',
+                                        '& svg': { fontSize: '1.2rem', flexShrink: 0 },
+                                    }}
+                                >
                                     <SettingsOutlinedIcon />
-                                    Ajustes
+                                    <span>Ajustes</span>
                                 </MenuItem>
-                                <MenuItem className="navbar-export-menu-item navbar-export-menu-item-danger" onClick={handleLogout}>
-                                    <LogoutIcon /> Cerrar sesión
+                                <MenuItem
+                                    className="navbar-export-menu-item navbar-export-menu-item-danger"
+                                    onClick={handleLogout}
+                                    sx={{
+                                        minHeight: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'flex-start',
+                                        px: 0.85,
+                                        py: 0.75,
+                                        columnGap: 1.1,
+                                        borderRadius: '0.45rem',
+                                        fontSize: '0.9rem',
+                                        lineHeight: 1.5,
+                                        fontWeight: 600,
+                                        color: '#22313b',
+                                        fontFamily: 'Helvetica, Arial, sans-serif',
+                                        '& svg': { fontSize: '1.2rem', flexShrink: 0 },
+                                    }}
+                                >
+                                    <LogoutIcon />
+                                    <span>Cerrar sesión</span>
                                 </MenuItem>
                             </Menu>
                         </>
