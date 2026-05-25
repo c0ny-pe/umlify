@@ -58,7 +58,10 @@ export async function createDiagram(user_id: number, name: string, content: Diag
 }
 
 export async function getDiagramsByUserId(user_id: number): Promise<Diagram[]> {
-  const result = await pool.query('SELECT * FROM diagrams WHERE user_id = $1', [user_id]);
+  const result = await pool.query(
+    'SELECT * FROM diagrams WHERE user_id = $1 ORDER BY updated_at DESC, created_at DESC',
+    [user_id]
+  );
   return result.rows;
 }
 

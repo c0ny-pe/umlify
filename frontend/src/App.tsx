@@ -107,11 +107,14 @@ function EditorScreen({
       setNodes([]);
       setEdges([]);
       setNextNodeId(1);
+      if (setDiagramTitle) setDiagramTitle(null);
+      if (setDiagramId) setDiagramId(null);
       resetEditMode();
     };
 
     const loadDiagram = async () => {
       if (!diagramId) {
+        clearEditor();
         setLoadingDiagram(false);
         setLoadingError(null);
         return;
@@ -195,7 +198,7 @@ function EditorScreen({
         };
 
         await api.put(`/diagrams/${diagramId}`, {
-          name: "Diagrama",
+          name: "Diagrama sin título",
           content: payload,
         });
       } catch (err) {
@@ -288,7 +291,7 @@ function EditorScreen({
 
                           const { data } = await api.post("/diagrams", {
                             user_id: user?.id,
-                            name: "Diagrama sin nombre",
+                            name: "Diagrama sin título",
                             content: payload,
                           });
 
@@ -342,7 +345,7 @@ function EditorScreen({
 
                           const { data } = await api.post("/diagrams", {
                             user_id: user?.id,
-                            name: "Diagrama sin nombre",
+                            name: "Diagrama sin título",
                             content: payload,
                           });
 
@@ -396,7 +399,7 @@ function EditorScreen({
 
                           const { data } = await api.post("/diagrams", {
                             user_id: user?.id,
-                            name: "Diagrama sin nombre",
+                            name: "Diagrama sin título",
                             content: payload,
                           });
 
