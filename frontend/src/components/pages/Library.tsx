@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/es";
 import api from "../../services/api";
 import "./library.css";
 import { IconButton } from "@mui/material";
@@ -20,17 +24,17 @@ type Diagram = {
   };
 };
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
+dayjs.extend(relativeTime);
+dayjs.extend(utc);
+dayjs.locale("es");
+
+function formatRelativeTime(value: string) {
+  const date = dayjs.utc(value).local().locale("es");
+  if (!date.isValid()) {
     return "-";
   }
 
-  return date.toLocaleDateString("es-CL", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return date.fromNow();
 }
 
 export default function Library() {
@@ -184,8 +188,8 @@ export default function Library() {
                     </IconButton>
                   </div>
                 </div>
-                <p className="library-meta">Ult. modificacion: {formatDate(diagram.updated_at)}</p>
-                <p className="library-meta">Fecha de creacion: {formatDate(diagram.created_at)}</p>
+                <p className="library-meta">Modificado {formatRelativeTime(diagram.updated_at)}</p>
+                <p className="library-meta">Creado {formatRelativeTime(diagram.created_at)}</p>
               </article>
             );
           })}
