@@ -2,7 +2,6 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   getSmoothStepPath,
-  getStraightPath,
   useInternalNode,
   type EdgeProps,
 } from '@xyflow/react';
@@ -70,15 +69,14 @@ export function AbstractEdge({
     targetHandleId
   );
 
-
-  const [edgePath, labelX, labelY] = getStraightPath({
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
-    //sourcePosition,
+    sourcePosition,
     targetX,
     targetY,
-    //targetPosition,
-    //borderRadius: 0
+    targetPosition,
+    borderRadius: 0,
   });
 
   // Extends the design if the arrow has to be dashed.
