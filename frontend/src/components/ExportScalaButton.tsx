@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, TextField } from "@mui/material";
+import { codeToHtml } from "shiki/bundle/full";
 import api from "../services/api";
 import { type ToastPayload, useGlobalContext } from "../hooks/useGlobalContext";
 
@@ -38,12 +39,47 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [code, setCode] = useState("");
+  const [highlightedHtml, setHighlightedHtml] = useState("");
   const [copyToastOpen, setCopyToastOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const renderHighlightedCode = async () => {
+      if (!open || loading || !code) {
+        setHighlightedHtml("");
+        return;
+      }
+
+      try {
+        const html = await codeToHtml(code, {
+          lang: "scala" as any,
+          theme: "github-light",
+        });
+
+        if (!cancelled) {
+          setHighlightedHtml(html);
+        }
+      } catch (error) {
+        console.error("Error highlighting Scala code", error);
+        if (!cancelled) {
+          setHighlightedHtml("");
+        }
+      }
+    };
+
+    renderHighlightedCode();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, code, loading]);
 
   const handleOpen = async () => {
     setOpen(true);
     setLoading(true);
     setCode("");
+    setHighlightedHtml("");
 
     try {
       const response = await api.post<string>("/generator", payload, {
@@ -80,21 +116,52 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>Código fuente en Scala</DialogTitle>
         <DialogContent>
-          <TextField
-            value={loading ? "Generando código..." : code}
-            multiline
-            minRows={18}
-            fullWidth
-            variant="outlined"
-            InputProps={{
-              readOnly: true,
-              sx: {
-                fontFamily: "SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
-                fontSize: "0.9rem",
-              },
-            }}
-            sx={{ mt: 1 }}
-          />
+          {loading ? (
+            <TextField
+              value="Generando código..."
+              multiline
+              minRows={18}
+              fullWidth
+              variant="outlined"
+              InputProps={{
+                readOnly: true,
+                sx: {
+                  fontFamily: "SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
+                  fontSize: "0.9rem",
+                },
+              }}
+              sx={{ mt: 1 }}
+            />
+          ) : highlightedHtml ? (
+            <div
+              className="scala-code-preview"
+              style={{
+                marginTop: 8,
+                overflowX: "auto",
+                padding: "1rem 1.1rem",
+                borderRadius: 10,
+                border: "1px solid rgba(34,49,59,0.16)",
+                background: "#fff",
+              }}
+              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+            />
+          ) : (
+            <TextField
+              value={code}
+              multiline
+              minRows={18}
+              fullWidth
+              variant="outlined"
+              InputProps={{
+                readOnly: true,
+                sx: {
+                  fontFamily: "SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
+                  fontSize: "0.9rem",
+                },
+              }}
+              sx={{ mt: 1 }}
+            />
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cerrar</Button>
