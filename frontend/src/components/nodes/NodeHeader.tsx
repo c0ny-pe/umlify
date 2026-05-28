@@ -16,9 +16,7 @@ import {
   Tooltip,
 } from "@mui/material";
 
-import LogoutIcon from "@mui/icons-material/Logout";
-import EditIcon from "@mui/icons-material/Edit";
-import { Delete } from "@mui/icons-material";
+import { LogOut, PencilLine, Trash2 } from "lucide-react";
 
 type NodeHeaderProps = {
   data: CustomNodeData;
@@ -203,14 +201,14 @@ const NodeHeader = (props: NodeHeaderProps) => {
                   }
                 }}
               >
-                <LogoutIcon fontSize="small" />
+                  <LogOut size={16} strokeWidth={2} />
               </IconButton>
             </Tooltip>
           ) : (
             mouseHover && (
               <Tooltip placement="top" title="Enter Edit mode" arrow>
                 <IconButton size="small" onClick={() => setEditMode(true)}>
-                  <EditIcon fontSize="small" />
+                    <PencilLine size={16} strokeWidth={2} />
                 </IconButton>
               </Tooltip>
             )
@@ -238,7 +236,7 @@ const NodeHeader = (props: NodeHeaderProps) => {
                   });
                 }}
               >
-                <Delete fontSize="small" />
+                  <Trash2 size={16} strokeWidth={2} />
               </IconButton>
             </Tooltip>
           )}

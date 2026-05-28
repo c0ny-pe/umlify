@@ -111,7 +111,9 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
 
   return (
     <>
-      <Button onClick={handleOpen}>Código fuente en Scala</Button>
+      <button className="navbar-menu-action" onClick={handleOpen} type="button">
+        Código fuente en Scala
+      </button>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>Código fuente en Scala</DialogTitle>

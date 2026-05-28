@@ -26,9 +26,7 @@ import {
   Chip,
 } from "@mui/material";
 
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
 
 type NodeMethodsProps = {
   data: CustomNodeData;
@@ -111,7 +109,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                 forceUpdate();
               }}
               variant="text"
-              startIcon={<AddIcon fontSize="small" />}
+              startIcon={<Plus size={16} strokeWidth={2} />}
             >
               Add method
             </Button>
@@ -126,7 +124,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                   <Box sx={{ display: "flex", minWidth: "100%" }}>
                     <div style={{ width: "100%" }}>
                       <AccordionSummary
-                        expandIcon={<ArrowDownwardIcon fontSize="small" />}
+                        expandIcon={<ChevronDown size={16} strokeWidth={2} />}
                         aria-controls={`panel-methods-${i}-content`}
                         id={`panel-methods-${i}-header`}
                       >
@@ -156,7 +154,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                           forceUpdate();
                         }}
                       >
-                        <DeleteIcon fontSize="small" />
+                        <Trash2 size={16} strokeWidth={2} />
                       </IconButton>
                     </div>
                   </Box>

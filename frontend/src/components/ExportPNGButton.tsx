@@ -1,5 +1,3 @@
-import { Download } from "@mui/icons-material";
-import { Button } from "@mui/material";
 import { getNodesBounds, Node } from "@xyflow/react";
 import { toPng } from "html-to-image";
 
@@ -24,7 +22,7 @@ const downloadImage = (dataUrl: string) => {
  * @returns {JSX.Element} The button to export the diagram as a PNG image.
  * @author Máximo Flores Valenzuela <https://github.com/maxfloresv>
  */
-const ExportButton = ({ nodes }: { nodes: Node[] }): JSX.Element => {
+const ExportPNGButton = ({ nodes }: { nodes: Node[] }): JSX.Element => {
   const flow = document.querySelector('.react-flow__viewport');
   const width = flow?.clientWidth;
   const height = flow?.clientHeight;
@@ -45,10 +43,10 @@ const ExportButton = ({ nodes }: { nodes: Node[] }): JSX.Element => {
   }
 
   return (
-    <Button onClick={handleDownload}>
+    <button className="navbar-menu-action" onClick={handleDownload} type="button">
       PNG
-    </Button>
+    </button>
   );
 }
 
-export default ExportButton;
+export default ExportPNGButton;

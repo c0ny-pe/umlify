@@ -7,9 +7,7 @@ import "dayjs/locale/es";
 import api from "../../services/api";
 import "./library.css";
 import { IconButton } from "@mui/material";
-import EditIcon from '@mui/icons-material/Edit';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Copy, PencilLine, PlusCircle, Trash2 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useGlobalContext } from "../../hooks/useGlobalContext";
 
@@ -178,13 +176,13 @@ export default function Library() {
                   <h2 className="library-card-title">{diagram.name || "Sin titulo"}</h2>
                   <div className="library-card-actions">
                     <IconButton size="small" onClick={(e) => { openRename(diagram, e); }} aria-label="Editar diagrama">
-                      <EditIcon fontSize="small" />
+                      <PencilLine size={18} strokeWidth={1.8} />
                     </IconButton>
                     <IconButton size="small" onClick={(e) => { openDuplicate(diagram, e); }} aria-label="Duplicar diagrama">
-                      <ContentCopyIcon fontSize="small" />
+                      <Copy size={18} strokeWidth={1.8} />
                     </IconButton>
                     <IconButton size="small" onClick={(e) => { openDelete(diagram, e); }} aria-label="Eliminar diagrama">
-                      <DeleteIcon fontSize="small" />
+                      <Trash2 size={18} strokeWidth={1.8} />
                     </IconButton>
                   </div>
                 </div>

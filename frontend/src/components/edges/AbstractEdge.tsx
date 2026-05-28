@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { IconButton } from '@mui/material';
 import { useEditorCanvas } from '../editorCanvasContext';
 
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Trash2 } from 'lucide-react';
 
 // These are measured in pixels.
 const MARKERS_WIDTH = 18;
@@ -172,7 +172,7 @@ export function AbstractEdge({
             className="nodrag nopan"
           >
             {mouseHover && <IconButton className="edgebutton" onClick={handleDeletingEdge}>
-              <DeleteIcon />
+              <Trash2 size={16} strokeWidth={2} />
             </IconButton>}
           </div>
         </EdgeLabelRenderer>
