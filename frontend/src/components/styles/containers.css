@@ -29,6 +29,11 @@
   position: relative;
 }
 
+.box-container,
+.box-container * {
+  font-family: "JetBrains Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
 .name-type-edit-container,
 .two-cols-container {
   display: flex;

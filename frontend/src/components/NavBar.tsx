@@ -1,14 +1,9 @@
 import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import EditIcon from '@mui/icons-material/Edit';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
 import { IconButton as MuiIconButton } from '@mui/material';
 import { forwardRef, useImperativeHandle } from 'react';
-import { Menu, MenuItem, Divider, IconButton } from '@mui/material';
-import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import LogoutIcon from '@mui/icons-material/Logout';
+import { Menu, Divider, IconButton } from '@mui/material';
+import { Check, FolderOpen, LogOut, PencilLine, Settings2, X } from 'lucide-react';
 import './styles/NavBar.css';
 import { useAuth } from '../hooks/useAuth';
 import { useRef, useEffect } from 'react';
@@ -65,10 +60,10 @@ const InlineEditableTitle = forwardRef<{ focusEdit: () => void }, InlineEditable
                     }}
                 />
                 <MuiIconButton size="small" className="navbar-diagram-confirm-button" onClick={confirm} aria-label="Confirmar nombre">
-                    <CheckIcon fontSize="small" />
+                    <Check size={16} strokeWidth={2} />
                 </MuiIconButton>
                 <MuiIconButton size="small" className="navbar-diagram-cancel-button" onClick={cancel} aria-label="Cancelar edición">
-                    <CloseIcon fontSize="small" />
+                    <X size={16} strokeWidth={2} />
                 </MuiIconButton>
             </div>
         ) : (
@@ -155,7 +150,7 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
                                                     titleRef.current?.focusEdit();
                                                 }}
                                             >
-                                                <EditIcon fontSize="small" />
+                                                <PencilLine size={16} strokeWidth={2} />
                                             </MuiIconButton>
                                         </div>
                                     ) : (
@@ -235,75 +230,30 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
                             >
                                 <div className="navbar-export-menu-header">{userLabel || 'Usuario'}</div>
                                 <Divider className="navbar-export-menu-divider" />
-                                <MenuItem
-                                    className="navbar-export-menu-item"
+                                <button
+                                    type="button"
+                                    className="navbar-menu-action navbar-menu-action-avatar"
                                     onClick={() => handleNavigate('/')}
-                                    sx={{
-                                        minHeight: 0,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'flex-start',
-                                        px: 0.85,
-                                        py: 0.75,
-                                        columnGap: 1.1,
-                                        borderRadius: '0.45rem',
-                                        fontSize: '0.9rem',
-                                        lineHeight: 1.5,
-                                        fontWeight: 600,
-                                        color: '#22313b',
-                                        fontFamily: 'Helvetica, Arial, sans-serif',
-                                        '& svg': { fontSize: '1.2rem', flexShrink: 0 },
-                                    }}
                                 >
-                                    <FolderOpenOutlinedIcon />
+                                    <FolderOpen size={18} strokeWidth={2} />
                                     <span>Biblioteca</span>
-                                </MenuItem>
-                                <MenuItem
-                                    className="navbar-export-menu-item"
+                                </button>
+                                <button
+                                    type="button"
+                                    className="navbar-menu-action navbar-menu-action-avatar"
                                     onClick={() => handleNavigate('/settings')}
-                                    sx={{
-                                        minHeight: 0,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'flex-start',
-                                        px: 0.85,
-                                        py: 0.75,
-                                        columnGap: 1.1,
-                                        borderRadius: '0.45rem',
-                                        fontSize: '0.9rem',
-                                        lineHeight: 1.5,
-                                        fontWeight: 600,
-                                        color: '#22313b',
-                                        fontFamily: 'Helvetica, Arial, sans-serif',
-                                        '& svg': { fontSize: '1.2rem', flexShrink: 0 },
-                                    }}
                                 >
-                                    <SettingsOutlinedIcon />
+                                    <Settings2 size={18} strokeWidth={2} />
                                     <span>Ajustes</span>
-                                </MenuItem>
-                                <MenuItem
-                                    className="navbar-export-menu-item navbar-export-menu-item-danger"
+                                </button>
+                                <button
+                                    type="button"
+                                    className="navbar-menu-action navbar-menu-action-avatar navbar-menu-action-danger"
                                     onClick={handleLogout}
-                                    sx={{
-                                        minHeight: 0,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'flex-start',
-                                        px: 0.85,
-                                        py: 0.75,
-                                        columnGap: 1.1,
-                                        borderRadius: '0.45rem',
-                                        fontSize: '0.9rem',
-                                        lineHeight: 1.5,
-                                        fontWeight: 600,
-                                        color: '#22313b',
-                                        fontFamily: 'Helvetica, Arial, sans-serif',
-                                        '& svg': { fontSize: '1.2rem', flexShrink: 0 },
-                                    }}
                                 >
-                                    <LogoutIcon />
+                                    <LogOut size={18} strokeWidth={2} />
                                     <span>Cerrar sesión</span>
-                                </MenuItem>
+                                </button>
                             </Menu>
                         </>
                     )}

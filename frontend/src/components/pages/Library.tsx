@@ -154,7 +154,6 @@ export default function Library() {
     <div className="library-page">
       <header className="library-header">
         <h1 className="library-title">Mis Diagramas</h1>
-        <button className="library-new-button" onClick={() => navigate("/editor")}>+ Nuevo Diagrama</button>
       </header>
 
       {loading && <p className="library-message">Cargando diagramas...</p>}
@@ -162,18 +161,28 @@ export default function Library() {
 
       {!loading && !error && diagrams.length > 0 && (
         <section className="library-grid">
+          <button
+            type="button"
+            className="library-create-card"
+            onClick={() => navigate("/editor")}
+            aria-label="Crear nuevo diagrama"
+          >
+            <span className="library-create-card-icon">
+              <PlusCircle size={34} strokeWidth={1.9} />
+            </span>
+            <span className="library-create-card-text">Crear nuevo</span>
+            <span className="library-create-card-subtext">
+              Empieza un diagrama desde cero
+            </span>
+          </button>
+
           {diagrams.map((diagram) => {
             const nodesCount = diagram.content?.nodes?.length ?? 0;
             const edgesCount = diagram.content?.edges?.length ?? 0;
 
             return (
               <article key={diagram.id} className="library-card" onClick={() => navigate(`/editor/${diagram.id}`)}>
-                <div className="library-preview">
-                  <span>{nodesCount} nodos</span>
-                  <span>{edgesCount} relaciones</span>
-                </div>
                 <div className="library-card-header">
-                  <h2 className="library-card-title">{diagram.name || "Sin titulo"}</h2>
                   <div className="library-card-actions">
                     <IconButton size="small" onClick={(e) => { openRename(diagram, e); }} aria-label="Editar diagrama">
                       <PencilLine size={18} strokeWidth={1.8} />
@@ -186,6 +195,11 @@ export default function Library() {
                     </IconButton>
                   </div>
                 </div>
+                <div className="library-preview">
+                  <span>{nodesCount} nodos</span>
+                  <span>{edgesCount} relaciones</span>
+                </div>
+                <h2 className="library-card-title">{diagram.name || "Sin titulo"}</h2>
                 <p className="library-meta">Modificado {formatRelativeTime(diagram.updated_at)}</p>
                 <p className="library-meta">Creado {formatRelativeTime(diagram.created_at)}</p>
               </article>
@@ -237,10 +251,23 @@ export default function Library() {
       )}
 
       {!loading && !error && diagrams.length === 0 && (
-        <div className="library-empty-wide">
-          <h2>Todavía no tienes diagramas</h2>
-          <p>Crea tu primer diagrama para comenzar.</p>
-        </div>
+        <section className="library-empty-state">
+          <div className="library-empty-copy">
+            <h2>Todavía no tienes diagramas</h2>
+            <p>
+              Empieza con una hoja en blanco y organiza tu idea con un diagrama UML.
+              Puedes crear, editar y conectar clases en segundos.
+            </p>
+            <button
+              type="button"
+              className="library-empty-cta"
+              onClick={() => navigate("/editor")}
+            >
+              <PlusCircle size={18} strokeWidth={2} />
+              Crear mi primer diagrama
+            </button>
+          </div>
+        </section>
       )}
     </div>
   );
