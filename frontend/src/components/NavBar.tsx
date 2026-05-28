@@ -11,15 +11,20 @@ import { useRef, useEffect } from 'react';
 type InlineEditableTitleProps = {
         value: string;
         onChange: (next: string) => void;
+        onEditingChange?: (editing: boolean) => void;
 };
 
 const InlineEditableTitle = forwardRef<{ focusEdit: () => void }, InlineEditableTitleProps>(
-    ({ value, onChange }, ref) => {
+    ({ value, onChange, onEditingChange }, ref) => {
         const [editing, setEditing] = useState(false);
         const [text, setText] = useState(value);
         const inputRef = useRef<HTMLInputElement | null>(null);
 
         useEffect(() => setText(value), [value]);
+
+        useEffect(() => {
+            onEditingChange?.(editing);
+        }, [editing, onEditingChange]);
 
         useEffect(() => {
             if (editing && inputRef.current) {
@@ -87,8 +92,8 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
     const titleRef = useRef<{ focusEdit: () => void } | null>(null);
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
     const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
 
-    const isLibraryView = pathname === '/';
     const isEditorView = pathname === '/editor' || pathname.startsWith('/editor/');
     const initial = user?.username?.trim().charAt(0).toUpperCase() || '?';
     const menuOpen = Boolean(anchorEl);
@@ -129,7 +134,6 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
                 <Link to="/" className="brand-link-authenticated">
                     UMLify
                 </Link>
-                {/* no left-side title - title will appear on the right next to Export */}
                 <div className="navbar-right">
                     {isEditorView && editorActions && (
                         <>
@@ -141,17 +145,20 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
                                                 ref={titleRef}
                                                 value={diagramTitle ?? 'Diagrama sin título'}
                                                 onChange={onDiagramTitleChange}
+                                                onEditingChange={setIsEditingTitle}
                                             />
-                                            <MuiIconButton
-                                                size="small"
-                                                aria-label="Editar nombre"
-                                                className="navbar-diagram-edit-button"
-                                                onClick={() => {
-                                                    titleRef.current?.focusEdit();
-                                                }}
-                                            >
-                                                <PencilLine size={16} strokeWidth={2} />
-                                            </MuiIconButton>
+                                            {!isEditingTitle && (
+                                                <MuiIconButton
+                                                    size="small"
+                                                    aria-label="Editar nombre"
+                                                    className="navbar-diagram-edit-button"
+                                                    onClick={() => {
+                                                        titleRef.current?.focusEdit();
+                                                    }}
+                                                >
+                                                    <PencilLine size={16} strokeWidth={2} />
+                                                </MuiIconButton>
+                                            )}
                                         </div>
                                     ) : (
                                         <span>{diagramTitle ?? 'Diagrama sin título'}</span>
@@ -184,84 +191,60 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
                             </Menu>
                         </>
                     )}
-                    {isLibraryView ? (
-                        <>
-                            <span className="navbar-user">Hola, {user?.username}</span>
-                            <button
-                                type="button"
-                                className="navbar-button navbar-button-secondary"
-                                onClick={() => navigate('/settings')}
-                            >
-                                Ajustes
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <IconButton
-                                aria-label={`Abrir menú de ${userLabel}`}
-                                onClick={handleOpenMenu}
-                                disableRipple
-                                disableFocusRipple
-                                sx={{
-                                    p: 0,
-                                    minWidth: 0,
-                                    width: '2.2rem',
-                                    height: '2.2rem',
-                                    flexShrink: 0,
-                                    '&:hover': { backgroundColor: 'transparent' },
-                                }}
-                            >
-                                <span
-                                    className="navbar-avatar"
-                                    aria-hidden="true"
-                                    title={userLabel}
-                                >
-                                    {initial}
-                                </span>
-                            </IconButton>
-                            <Menu
-                                anchorEl={anchorEl}
-                                open={menuOpen}
-                                onClose={handleCloseMenu}
-                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                                MenuListProps={{ sx: { p: 0 } }}
-                                PaperProps={{ className: 'navbar-export-menu-paper' }}
-                            >
-                                <div className="navbar-export-menu-header">{userLabel || 'Usuario'}</div>
-                                <Divider className="navbar-export-menu-divider" />
-                                <button
-                                    type="button"
-                                    className="navbar-menu-action navbar-menu-action-avatar"
-                                    onClick={() => handleNavigate('/')}
-                                >
-                                    <FolderOpen size={18} strokeWidth={2} />
-                                    <span>Biblioteca</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className="navbar-menu-action navbar-menu-action-avatar"
-                                    onClick={() => handleNavigate('/settings')}
-                                >
-                                    <Settings2 size={18} strokeWidth={2} />
-                                    <span>Ajustes</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className="navbar-menu-action navbar-menu-action-avatar navbar-menu-action-danger"
-                                    onClick={handleLogout}
-                                >
-                                    <LogOut size={18} strokeWidth={2} />
-                                    <span>Cerrar sesión</span>
-                                </button>
-                            </Menu>
-                        </>
-                    )}
-                    {isLibraryView && (
-                        <button type="button" className="navbar-button navbar-button-secondary" onClick={handleLogout}>
-                            Cerrar sesión
+                    <IconButton
+                        aria-label={`Abrir menú de ${userLabel}`}
+                        onClick={handleOpenMenu}
+                        disableRipple
+                        disableFocusRipple
+                        sx={{
+                            p: 0,
+                            minWidth: 0,
+                            width: '2.2rem',
+                            height: '2.2rem',
+                            flexShrink: 0,
+                            '&:hover': { backgroundColor: 'transparent' },
+                        }}
+                    >
+                        <span className="navbar-avatar" aria-hidden="true" title={userLabel}>
+                            {initial}
+                        </span>
+                    </IconButton>
+                    <Menu
+                        anchorEl={anchorEl}
+                        open={menuOpen}
+                        onClose={handleCloseMenu}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        MenuListProps={{ sx: { p: 0 } }}
+                        PaperProps={{ className: 'navbar-export-menu-paper' }}
+                    >
+                        <div className="navbar-export-menu-header">{userLabel || 'Usuario'}</div>
+                        <Divider className="navbar-export-menu-divider" />
+                        <button
+                            type="button"
+                            className="navbar-menu-action navbar-menu-action-avatar"
+                            onClick={() => handleNavigate('/')}
+                        >
+                            <FolderOpen size={18} strokeWidth={2} />
+                            <span>Biblioteca</span>
                         </button>
-                    )}
+                        <button
+                            type="button"
+                            className="navbar-menu-action navbar-menu-action-avatar"
+                            onClick={() => handleNavigate('/settings')}
+                        >
+                            <Settings2 size={18} strokeWidth={2} />
+                            <span>Ajustes</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="navbar-menu-action navbar-menu-action-avatar navbar-menu-action-danger"
+                            onClick={handleLogout}
+                        >
+                            <LogOut size={18} strokeWidth={2} />
+                            <span>Cerrar sesión</span>
+                        </button>
+                    </Menu>
                 </div>
             </nav>
         );
