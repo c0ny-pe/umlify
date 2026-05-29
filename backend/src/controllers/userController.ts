@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createUser, getUserByCredentials, getUserById } from '../models/user';
+import { createUser, getUserByCredentials, getUserById, updateUserUsername } from '../models/user';
 import { signAccessToken } from '../utils/auth';
 
 export async function registerUser(req: Request, res: Response) {
@@ -39,5 +39,34 @@ export async function getUser(req: Request, res: Response) {
     else res.status(404).json({ error: 'Usuario no encontrado' });
   } catch (err) {
     res.status(500).json({ error: 'Error al buscar usuario' });
+  }
+}
+
+export async function updateCurrentUser(req: Request, res: Response) {
+  const authUser = (req as any).user as { id?: number; username?: string } | undefined;
+  const { username } = req.body;
+
+  if (!authUser?.id) {
+    res.status(401).json({ error: 'token missing or invalid' });
+    return;
+  }
+
+  try {
+    const updatedUser = await updateUserUsername(authUser.id, username);
+
+    if (!updatedUser) {
+      res.status(404).json({ error: 'Usuario no encontrado' });
+      return;
+    }
+
+    const token = signAccessToken({ id: updatedUser.id, username: updatedUser.username });
+    res.json({ user: updatedUser, token });
+  } catch (err: any) {
+    if (err?.code === '23505') {
+      res.status(409).json({ error: 'El nombre de usuario ya está en uso' });
+      return;
+    }
+
+    res.status(500).json({ error: 'No se pudo actualizar el usuario' });
   }
 }

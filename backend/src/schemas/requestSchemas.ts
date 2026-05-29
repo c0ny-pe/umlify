@@ -14,6 +14,10 @@ export const userLoginBodySchema = z.object({
   password: nonEmptyText,
 });
 
+export const userUpdateBodySchema = z.object({
+  username: nonEmptyText,
+});
+
 export const userIdParamsSchema = z.object({
   id: z.coerce.string().refine((value) => {
     const parsed = Number(value);

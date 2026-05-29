@@ -50,3 +50,12 @@ export async function getUserByCredentials(
 
   return toPublicUser(user) as PublicUser;
 }
+
+export async function updateUserUsername(id: number, username: string): Promise<PublicUser | null> {
+  const result = await pool.query(
+    'UPDATE users SET username = $1 WHERE id = $2 RETURNING *',
+    [username, id]
+  );
+
+  return toPublicUser(result.rows[0] || null);
+}
