@@ -2,23 +2,24 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { BadgeCheck, Lock, User } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useGlobalContext } from '../../hooks/useGlobalContext';
-import { AUTH_STORAGE_KEY, dispatchAuthStateChanged } from '../../utils/authSession';
 import './settings.css';
+import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
-    const { user } = useAuth();
+    const { user, updateProfile } = useAuth();
     const { setToast } = useGlobalContext();
     const [username, setUsername] = useState(user?.username ?? '');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         setUsername(user?.username ?? '');
     }, [user?.username]);
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         const nextUsername = username.trim();
@@ -40,13 +41,18 @@ export default function Settings() {
         setIsSaving(true);
 
         try {
-            const nextUser = { ...user, username: nextUsername };
-            window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser));
-            dispatchAuthStateChanged();
+            await updateProfile({ username: nextUsername });
             setToast({ message: 'Nombre de usuario actualizado.', severity: 'success' });
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
+            setUsername(nextUsername);
+        } catch (error: any) {
+            const message = error?.response?.status === 409
+                ? 'Ese nombre de usuario ya está en uso.'
+                : 'No pudimos guardar los cambios.';
+            setToast({ message, severity: 'error' });
+            return;
         } finally {
             setIsSaving(false);
         }
@@ -139,7 +145,12 @@ export default function Settings() {
                         </div>
 
                         <div className="settings-actions">
-                            <button type="submit" className="settings-save-button" disabled={isSaving}>
+                            <button
+                                type="submit"
+                                className="settings-save-button"
+                                disabled={isSaving}
+                                onClick={() => navigate('/')}
+                            >
                                 {isSaving ? 'Guardando...' : 'Guardar cambios'}
                             </button>
                             <div className="settings-status">

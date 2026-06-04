@@ -37,6 +37,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   login: (credentials: AuthCredentials) => Promise<AuthUser>;
   register: (credentials: AuthCredentials) => Promise<AuthUser>;
+  updateProfile: (payload: { username: string }) => Promise<AuthUser>;
   logout: () => void;
 };
 
@@ -115,6 +116,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return persistSession(data);
   }, [persistSession]);
 
+  const updateProfile = useCallback(async (payload: { username: string }) => {
+    const { data } = await api.put<AuthResponse>("/users/me", payload);
+    return persistSession(data);
+  }, [persistSession]);
+
   const logout = useCallback(() => {
     clearStoredSession();
     dispatchAuthStateChanged();
@@ -126,9 +132,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     isAuthenticated: Boolean(user && tokenPresent),
     login,
+    updateProfile,
     register,
     logout,
-  }), [login, logout, register, user, tokenPresent]);
+  }), [login, logout, register, updateProfile, user, tokenPresent]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
