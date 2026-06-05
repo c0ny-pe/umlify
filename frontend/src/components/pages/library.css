@@ -239,23 +239,39 @@
 
 .library-modal {
   background: #fff;
-  padding: 1rem 1.25rem;
-  border-radius: 8px;
-  min-width: 300px;
+  padding: 1.25rem 1.5rem;
+  border-radius: 10px;
+  min-width: 340px;
   max-width: 90%;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.10);
 }
 
-.library-modal h3 { margin: 0 0 0.5rem; }
-.library-modal-input { width: 100%; padding: 8px 10px; margin-bottom: 0.75rem; border-radius: 8px; border: 1px solid rgba(0,0,0,0.08); }
+.library-modal h3 { margin: 0 0 0.75rem; }
+.library-modal p { margin: 0 0 1rem; font-size: 0.95rem; color: #3b4750; }
+.library-modal-delete-text {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #3b4750;
+}
+
+.library-modal-delete-name {
+  display: inline-block;
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.library-modal-input { width: 100%; padding: 10px 12px; margin-bottom: 1rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.08); }
 .library-modal-input {
   box-sizing: border-box;
   display: block;
   min-width: 0;
 }
-.library-modal-actions { display:flex; justify-content:flex-end; gap:0.5rem; }
-.library-modal-actions button { padding: 0.5rem 0.9rem; border-radius: 8px; border:0; cursor:pointer; }
-.library-modal-actions button:first-child { background:#efefef; }
+.library-modal-actions { display:flex; justify-content:flex-end; gap:0.75rem; padding-top: 0.25rem; }
+.library-modal-actions button { padding: 0.64rem 1.05rem; border-radius: 10px; border:0; cursor:pointer; font-weight: 700; }
+.library-modal-actions button:first-child { background:#efefef; color: #1f1f1f; }
 .library-modal-actions button:last-child { background:#2fbb62; color:#fff; }
 
 .library-message {
