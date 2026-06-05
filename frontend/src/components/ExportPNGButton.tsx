@@ -1,5 +1,6 @@
 import { getNodesBounds, Node } from "@xyflow/react";
 import { toPng } from "html-to-image";
+import { Image } from 'lucide-react';
 
 /**
  * Downloads an image from a given URL.
@@ -44,7 +45,8 @@ const ExportPNGButton = ({ nodes }: { nodes: Node[] }): JSX.Element => {
 
   return (
     <button className="navbar-menu-action" onClick={handleDownload} type="button">
-      PNG
+      <Image size={16} />
+      <span>PNG</span>
     </button>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, TextField } from "@mui/material";
+import { Code } from 'lucide-react';
 import { codeToHtml } from "shiki/bundle/full";
 import api from "../services/api";
 import { type ToastPayload, useGlobalContext } from "../hooks/useGlobalContext";
@@ -112,7 +113,8 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
   return (
     <>
       <button className="navbar-menu-action" onClick={handleOpen} type="button">
-        Código fuente en Scala
+        <Code size={16} />
+        <span>Código fuente en Scala</span>
       </button>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
