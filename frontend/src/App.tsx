@@ -183,7 +183,7 @@ function EditorScreen({
             id: String(n.id),
             name: n.name,
             classType: n.classType,
-            fields: n.fields,
+            fields: n.fields.filter((f) => f.type && f.type.trim() !== ""),
             methods: n.methods,
             x: n.x,
             y: n.y,

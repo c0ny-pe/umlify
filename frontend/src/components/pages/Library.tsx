@@ -7,7 +7,7 @@ import "dayjs/locale/es";
 import api from "../../services/api";
 import "./library.css";
 import { IconButton } from "@mui/material";
-import { Copy, PencilLine, PlusCircle, Trash2 } from "lucide-react";
+import { Copy, PencilLine, PlusCircle, Search, Trash2 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useGlobalContext } from "../../hooks/useGlobalContext";
 
@@ -79,6 +79,18 @@ export default function Library() {
   const [duplicateText, setDuplicateText] = useState<string>("");
 
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; diagram?: Diagram }>({ open: false });
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredDiagrams = searchQuery.trim()
+    ? diagrams.filter((d) => {
+        const q = searchQuery.toLowerCase().trim();
+        if (d.name.toLowerCase().includes(q)) return true;
+        return (d.content?.nodes ?? []).some(
+          (node) => ((node as { name?: string }).name ?? "").toLowerCase().includes(q)
+        );
+      })
+    : diagrams;
 
   const openRename = (diagram: Diagram, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -154,6 +166,19 @@ export default function Library() {
     <div className="library-page">
       <header className="library-header">
         <h1 className="library-title">Mis Diagramas</h1>
+        <div className="library-search-wrapper">
+          <span className="library-search-icon">
+            <Search size={16} strokeWidth={2} />
+          </span>
+          <input
+            type="search"
+            className="library-search-input"
+            placeholder="Buscar por nombre o clase..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Buscar diagramas"
+          />
+        </div>
       </header>
 
       {loading && <p className="library-message">Cargando diagramas...</p>}
@@ -161,22 +186,30 @@ export default function Library() {
 
       {!loading && !error && diagrams.length > 0 && (
         <section className="library-grid">
-          <button
-            type="button"
-            className="library-create-card"
-            onClick={() => navigate("/editor")}
-            aria-label="Crear nuevo diagrama"
-          >
-            <span className="library-create-card-icon">
-              <PlusCircle size={34} strokeWidth={1.9} />
-            </span>
-            <span className="library-create-card-text">Crear nuevo</span>
-            <span className="library-create-card-subtext">
-              Empieza un diagrama desde cero
-            </span>
-          </button>
+          {!searchQuery.trim() && (
+            <button
+              type="button"
+              className="library-create-card"
+              onClick={() => navigate("/editor")}
+              aria-label="Crear nuevo diagrama"
+            >
+              <span className="library-create-card-icon">
+                <PlusCircle size={34} strokeWidth={1.9} />
+              </span>
+              <span className="library-create-card-text">Crear nuevo</span>
+              <span className="library-create-card-subtext">
+                Empieza un diagrama desde cero
+              </span>
+            </button>
+          )}
 
-          {diagrams.map((diagram) => {
+          {filteredDiagrams.length === 0 && (
+            <p className="library-no-results">
+              No se encontraron diagramas para &quot;{searchQuery}&quot;.
+            </p>
+          )}
+
+          {filteredDiagrams.map((diagram) => {
             const nodesCount = diagram.content?.nodes?.length ?? 0;
             const edgesCount = diagram.content?.edges?.length ?? 0;
 
