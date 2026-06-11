@@ -7,7 +7,21 @@ import {
 } from '@xyflow/react';
 import { getEdgeParams } from '../utils/calculations';
 import generatePath from '../utils/generatePath';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+function useDarkMode(): boolean {
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  );
+  useEffect(() => {
+    const observer = new MutationObserver(() =>
+      setIsDark(document.documentElement.classList.contains('dark'))
+    );
+    observer.observe(document.documentElement, { attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+  return isDark;
+}
 import { IconButton } from '@mui/material';
 import { useEditorCanvas } from '../editorCanvasContext';
 
@@ -44,9 +58,12 @@ export function AbstractEdge({
   isDashed,
   markerFilled = false,
   markerType,
-  style = { stroke: 'black' },
+  style,
 }: EdgeProps & ExtendedEdgeProps): JSX.Element | null {
   const [mouseHover, setMouseHover] = useState<boolean>(false);
+  const isDark = useDarkMode();
+  const strokeColor = isDark ? '#f0f3f6' : 'black';
+  const emptyFill  = isDark ? '#1a1f21' : 'white';
   const { setEdges } = useEditorCanvas();
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
@@ -82,7 +99,8 @@ export function AbstractEdge({
   // Extends the design if the arrow has to be dashed.
   const edgeStyle = {
     strokeDasharray: isDashed ? '5 5' : '0',
-    ...style
+    stroke: strokeColor,
+    ...style,
   };
 
   /**
@@ -111,7 +129,7 @@ export function AbstractEdge({
             <path
               d={generatePath(markerType, MARKERS_WIDTH, MARKERS_HEIGHT)}
               fill="none"
-              stroke="black"
+              stroke={strokeColor}
             />
           </marker>
         )}
@@ -126,8 +144,8 @@ export function AbstractEdge({
           >
             <path
               d={generatePath(markerType, DIAMOND_FIXED_FACTOR * MARKERS_WIDTH, MARKERS_HEIGHT)}
-              fill={markerFilled ? "black" : "white"}
-              stroke="black"
+              fill={markerFilled ? strokeColor : emptyFill}
+              stroke={strokeColor}
             />
           </marker>
         )}
@@ -142,8 +160,8 @@ export function AbstractEdge({
           >
             <path
               d={generatePath(markerType, MARKERS_WIDTH, MARKERS_HEIGHT)}
-              fill={markerFilled ? "black" : "white"}
-              stroke="black"
+              fill={markerFilled ? strokeColor : emptyFill}
+              stroke={strokeColor}
             />
           </marker>
         )}

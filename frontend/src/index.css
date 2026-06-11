@@ -1,4 +1,21 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+:root {
+  --text-color: #1d2a35;
+  --background-gradient: radial-gradient(circle at top left, rgba(61, 90, 128, 0.14), transparent 34%), radial-gradient(circle at top right, rgba(223, 162, 115, 0.16), transparent 28%), linear-gradient(180deg, #fffaf2 0%, #f5efe6 100%);
+  --brand: #35be5f;
+  --brand-700: #2f8f57;
+  --brand-600: #4f7f63;
+  --brand-border: rgba(85, 157, 98, 0.24);
+  --brand-border-weak: rgba(85, 157, 98, 0.12);
+  --brand-bg-plain: rgba(47, 143, 87, 0.14);
+  --surface: #ffffff;
+  --panel: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(243, 248, 244, 0.98));
+  --muted-bg: #f8f8f8;
+  --card-border: #e2e2e2;
+  --elev-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  /* icon accent for light backgrounds */
+  --brand-icon: #35be5f;
+}
 
 html,
 body {
@@ -9,11 +26,37 @@ body {
   font-family: "Inter", "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background:
-    radial-gradient(circle at top left, rgba(61, 90, 128, 0.14), transparent 34%),
-    radial-gradient(circle at top right, rgba(223, 162, 115, 0.16), transparent 28%),
-    linear-gradient(180deg, #fffaf2 0%, #f5efe6 100%);
-  color: #1d2a35;
+  background: var(--background-gradient);
+  color: var(--text-color);
+}
+
+/* Dark theme overrides */
+html.dark, body.dark {
+  --text-color: #f0f3f6;
+  --background-gradient: linear-gradient(180deg, #07080a 0%, #0b0d10 100%);
+  --brand: #82234b;
+  --brand-700: #c02863;
+  --brand-600: #d33b7a;
+  /* darker variants for heavy backgrounds */
+  --brand-dark: #a02753;
+  --brand-dark-700: #8b3857;
+  --brand-border: rgba(255, 106, 169, 0.24);
+  --brand-border-weak: rgba(255, 106, 169, 0.12);
+  --brand-bg-plain: rgba(224, 58, 127, 0.18);
+  /* softened dark palette so surfaces are readable */
+  --surface: #151819;
+  /* paler pink used for icon background (lighter circle behind +) */
+  --brand-bg-plain: rgba(255, 182, 210, 0.14);
+  /* navbar slightly lighter than page background */
+  --navbar: #141819;
+  /* panel (dropdowns) a bit lighter than navbar */
+  --panel: #1a1f21;
+  --muted-bg: #0e1213;
+  --card-border: rgba(255,255,255,0.10);
+  --elev-shadow: 0 8px 24px rgba(0,0,0,0.38);
+  background-color: #07080a;
+  /* icon accent for dark backgrounds */
+  --brand-icon: #ffd1e8;
 }
 
 code {
@@ -22,4 +65,102 @@ code {
 
 #root {
   min-height: 100%;
+}
+
+/* ensure react-flow canvas follows theme surface */
+.react-flow {
+  background: var(--surface) !important;
+}
+
+/* Dark-mode: tone down React Flow controls (zoom, fit, lock) */
+html.dark .react-flow__controls,
+html.dark .react-flow__controls button,
+html.dark .react-flow__controls .react-flow__controls-button {
+  background: transparent !important;
+  background-color: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.04) !important;
+  box-shadow: none !important;
+  color: rgba(255,255,255,0.7) !important;
+}
+
+/* Make React Flow background exactly the app surface and remove patterned grid for consistency */
+.react-flow__background {
+  background-color: var(--surface) !important;
+  background-image: none !important;
+}
+
+/* Attribution / watermark readability */
+.react-flow__attribution,
+.react-flow__attribution a {
+  background: transparent !important;
+  color: var(--text-color) !important;
+  opacity: 0.95 !important;
+}
+
+/* Ensure node/editor text contrast inside react-flow matches theme */
+.react-flow,
+.react-flow * {
+  color: inherit;
+}
+
+html.dark .react-flow__controls button svg {
+  stroke: rgba(255,255,255,0.72) !important;
+  color: rgba(255,255,255,0.72) !important;
+}
+
+html.dark .box-container {
+  background-color: #1a1f21;
+}
+
+html.dark .title-container,
+html.dark .field-container,
+html.dark .method-container {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+html.dark .box-container,
+html.dark .box-container * {
+  color: var(--text-color);
+}
+
+html.dark .box-container .MuiAccordion-root,
+html.dark .box-container .MuiAccordionSummary-root,
+html.dark .box-container .MuiAccordionDetails-root,
+html.dark .box-container .MuiPaper-root {
+  background-color: #1a1f21;
+  color: var(--text-color);
+}
+
+html.dark .box-container .MuiInputBase-root,
+html.dark .box-container .MuiOutlinedInput-root,
+html.dark .box-container .MuiSelect-select {
+  background-color: #0e1213;
+  color: var(--text-color);
+}
+
+html.dark .box-container .MuiInputLabel-root,
+html.dark .box-container .MuiFormLabel-root {
+  color: rgba(240, 243, 246, 0.55);
+}
+
+html.dark .box-container .MuiInput-underline:before {
+  border-bottom-color: rgba(240, 243, 246, 0.2);
+}
+
+html.dark .box-container .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(240, 243, 246, 0.2);
+}
+
+html.dark .box-container .MuiSelect-icon {
+  color: rgba(240, 243, 246, 0.55);
+}
+
+html.dark .box-container .MuiMenuItem-root {
+  background-color: #1a1f21;
+}
+
+html.dark .box-container .MuiAutocomplete-paper,
+html.dark .box-container .MuiAutocomplete-listbox {
+  background-color: #1a1f21;
+  color: var(--text-color);
 }

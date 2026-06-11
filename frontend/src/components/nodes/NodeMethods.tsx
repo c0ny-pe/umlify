@@ -297,7 +297,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                       className="two-cols-container"
                       style={{ marginBottom: 0 }}
                     >
-                      <FormControl size="small" fullWidth>
+                      <FormControl size="small" fullWidth sx={{ mt: 1.5 }}>
                         <InputLabel size="small" id={`method-${i}-visibility`}>
                           Visibility
                         </InputLabel>

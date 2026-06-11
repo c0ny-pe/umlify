@@ -1,9 +1,9 @@
 import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { IconButton as MuiIconButton } from '@mui/material';
+import { IconButton as MuiIconButton, Switch } from '@mui/material';
 import { forwardRef, useImperativeHandle } from 'react';
 import { Menu, Divider, IconButton } from '@mui/material';
-import { Check, FolderOpen, LogOut, PencilLine, Settings2, X } from 'lucide-react';
+import { Check, FolderOpen, LogOut, Moon, PencilLine, Settings2, Sun, X } from 'lucide-react';
 import './styles/NavBar.css';
 import { useAuth } from '../hooks/useAuth';
 import { useRef, useEffect } from 'react';
@@ -87,6 +87,7 @@ type NavBarProps = {
 
 const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarProps) => {
     const { user, isAuthenticated, logout } = useAuth();
+    const [isDark, setIsDark] = useState<boolean>(false);
     const { pathname } = useLocation();
     const navigate = useNavigate();
     const titleRef = useRef<{ focusEdit: () => void } | null>(null);
@@ -126,6 +127,26 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
         handleCloseMenu();
         logout();
         navigate('/login', { replace: true });
+    };
+
+    useEffect(() => {
+        const saved = window.localStorage.getItem('theme');
+        const prefersDark = saved === 'dark';
+        setIsDark(prefersDark);
+        if (prefersDark) document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+    }, []);
+
+    const toggleTheme = () => {
+        const next = !isDark;
+        setIsDark(next);
+        if (next) {
+            document.documentElement.classList.add('dark');
+            window.localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            window.localStorage.setItem('theme', 'light');
+        }
     };
 
     if (isAuthenticated) {
@@ -244,6 +265,21 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
                             <LogOut size={18} strokeWidth={2} />
                             <span>Cerrar sesión</span>
                         </button>
+                        <Divider className="navbar-export-menu-divider" />
+                        <div className="navbar-menu-theme-row navbar-menu-theme-row-compact">
+                            <div className="navbar-menu-theme-left">
+                                <span className="navbar-menu-theme-icon" aria-hidden="true">
+                                    {isDark ? <Moon size={16} strokeWidth={2} /> : <Sun size={16} strokeWidth={2} />}
+                                </span>
+                                <span className="navbar-menu-theme-label">Modo Oscuro</span>
+                            </div>
+                            <Switch
+                                checked={isDark}
+                                onChange={toggleTheme}
+                                className="navbar-theme-switch"
+                                inputProps={{ 'aria-label': 'Alternar modo oscuro' }}
+                            />
+                        </div>
                     </Menu>
                 </div>
             </nav>

@@ -53,9 +53,10 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
       }
 
       try {
+        const isDark = document.documentElement.classList.contains("dark");
         const html = await codeToHtml(code, {
           lang: "scala" as any,
-          theme: "github-light",
+          theme: isDark ? "github-dark" : "github-light",
         });
 
         if (!cancelled) {
@@ -117,9 +118,15 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
         <span>Código fuente en Scala</span>
       </button>
 
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle>Código fuente en Scala</DialogTitle>
-        <DialogContent>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ className: "scala-export-dialog-paper" }}
+      >
+        <DialogTitle className="scala-export-dialog-title">Código fuente en Scala</DialogTitle>
+        <DialogContent className="scala-export-dialog-content">
           {loading ? (
             <TextField
               value="Generando código..."
@@ -144,8 +151,6 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
                 overflowX: "auto",
                 padding: "1rem 1.1rem",
                 borderRadius: 10,
-                border: "1px solid rgba(34,49,59,0.16)",
-                background: "#fff",
               }}
               dangerouslySetInnerHTML={{ __html: highlightedHtml }}
             />
@@ -167,9 +172,16 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
             />
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cerrar</Button>
-          <Button onClick={handleCopy} disabled={!code || loading} variant="contained">
+        <DialogActions className="scala-export-dialog-actions">
+          <Button onClick={() => setOpen(false)} className="scala-export-dialog-button scala-export-dialog-button-secondary">
+            Cerrar
+          </Button>
+          <Button
+            onClick={handleCopy}
+            disabled={!code || loading}
+            variant="contained"
+            className="scala-export-dialog-button scala-export-dialog-button-primary"
+          >
             Copiar
           </Button>
         </DialogActions>
