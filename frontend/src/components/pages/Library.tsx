@@ -10,6 +10,20 @@ import { IconButton } from "@mui/material";
 import { Copy, PencilLine, PlusCircle, Search, Trash2 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useGlobalContext } from "../../hooks/useGlobalContext";
+import DiagramThumbnail from "../DiagramThumbnail";
+
+type DiagramNode = {
+  id: string;
+  name: string;
+  classType: string;
+  x: number;
+  y: number;
+};
+
+type DiagramEdge = {
+  source: string;
+  target: string;
+};
 
 type Diagram = {
   id: string;
@@ -17,8 +31,8 @@ type Diagram = {
   created_at: string;
   updated_at: string;
   content: {
-    nodes?: unknown[];
-    edges?: unknown[];
+    nodes?: DiagramNode[];
+    edges?: DiagramEdge[];
   };
 };
 
@@ -210,9 +224,6 @@ export default function Library() {
           )}
 
           {filteredDiagrams.map((diagram) => {
-            const nodesCount = diagram.content?.nodes?.length ?? 0;
-            const edgesCount = diagram.content?.edges?.length ?? 0;
-
             return (
               <article key={diagram.id} className="library-card" onClick={() => navigate(`/editor/${diagram.id}`)}>
                 <div className="library-card-header">
@@ -229,8 +240,10 @@ export default function Library() {
                   </div>
                 </div>
                 <div className="library-preview">
-                  <span>{nodesCount} nodos</span>
-                  <span>{edgesCount} relaciones</span>
+                  <DiagramThumbnail
+                    nodes={diagram.content?.nodes ?? []}
+                    edges={diagram.content?.edges ?? []}
+                  />
                 </div>
                 <h2 className="library-card-title">{diagram.name || "Sin titulo"}</h2>
                 <p className="library-meta">Modificado {formatRelativeTime(diagram.updated_at)}</p>

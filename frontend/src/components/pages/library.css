@@ -107,8 +107,8 @@
 
 html.dark .library-preview {
   color: rgba(255,255,255,0.78);
-  background-color: rgba(255,255,255,0.02);
-  background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-color: var(--muted-bg);
+  background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px);
 }
 
 html.dark .library-card,
@@ -223,20 +223,18 @@ html.dark .library-create-card-icon {
 }
 
 .library-preview {
-  min-height: 96px;
-  padding: 0.7rem 0.8rem;
   border: 1px solid var(--card-border);
   border-radius: 8px;
   background-color: var(--muted-bg);
   background-image: radial-gradient(#e8e8e8 1px, transparent 1px);
   background-size: 8px 8px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   color: #767676;
-  gap: 0.18rem;
   margin: 0.25rem 0 0.45rem;
+  overflow: hidden;
+  line-height: 0;
 }
 
 .library-card-title {
