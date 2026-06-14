@@ -128,39 +128,20 @@ html.dark .box-container .MuiAccordionSummary-root,
 html.dark .box-container .MuiAccordionDetails-root,
 html.dark .box-container .MuiPaper-root {
   background-color: #1a1f21;
+  background-image: none;
   color: var(--text-color);
 }
 
-html.dark .box-container .MuiInputBase-root,
-html.dark .box-container .MuiOutlinedInput-root,
-html.dark .box-container .MuiSelect-select {
-  background-color: #0e1213;
-  color: var(--text-color);
+
+html.dark .box-container .MuiInputLabel-root.Mui-error,
+html.dark .box-container .MuiFormLabel-root.Mui-error {
+  color: #ef9a9a;
 }
 
-html.dark .box-container .MuiInputLabel-root,
-html.dark .box-container .MuiFormLabel-root {
-  color: rgba(240, 243, 246, 0.55);
-}
-
-html.dark .box-container .MuiInput-underline:before {
-  border-bottom-color: rgba(240, 243, 246, 0.2);
-}
-
-html.dark .box-container .MuiOutlinedInput-notchedOutline {
-  border-color: rgba(240, 243, 246, 0.2);
-}
-
-html.dark .box-container .MuiSelect-icon {
-  color: rgba(240, 243, 246, 0.55);
+html.dark .box-container .MuiInput-underline.Mui-error:after {
+  border-bottom-color: #ef9a9a;
 }
 
 html.dark .box-container .MuiMenuItem-root {
   background-color: #1a1f21;
-}
-
-html.dark .box-container .MuiAutocomplete-paper,
-html.dark .box-container .MuiAutocomplete-listbox {
-  background-color: #1a1f21;
-  color: var(--text-color);
 }

@@ -167,6 +167,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                         label="Method Name"
                         variant="standard"
                         defaultValue={method.name}
+                        InputLabelProps={{ shrink: true }}
                         onChange={(e) => {
                           setNodes((oldNodes) => {
                             const [retrievedNode] = oldNodes.filter(
@@ -224,6 +225,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                             id={`method-${i}-codType`}
                             label="Method Codomain Type"
                             variant="standard"
+                            InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
                           />
                         )}
                       />
@@ -288,6 +290,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                             variant="standard"
                             label="Method Domain Type(s)"
                             placeholder="Type and press Enter"
+                            InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
                           />
                         );
                       }}
@@ -297,7 +300,14 @@ const NodeMethods = (props: NodeMethodsProps) => {
                       className="two-cols-container"
                       style={{ marginBottom: 0 }}
                     >
-                      <FormControl size="small" fullWidth sx={{ mt: 1.5 }}>
+                      <FormControl
+                        size="small"
+                        fullWidth
+                        variant="standard"
+                        sx={{ mt: 1.5 }}
+                        className="nodrag"
+                        onMouseDown={(e) => e.nativeEvent.stopPropagation()}
+                      >
                         <InputLabel size="small" id={`method-${i}-visibility`}>
                           Visibility
                         </InputLabel>
@@ -307,7 +317,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                           id={`method-${i}-visibility-select`}
                           sx={{ overflow: "visible", zIndex: 9999 }}
                           value={method.visibility}
-                          label="Visibility"
+                          variant="standard"
                           onChange={(e) => {
                             setNodes((oldNodes) => {
                               const [retrievedNode] = oldNodes.filter(

@@ -61,10 +61,16 @@ const NodeFields = (props: NodeFieldsProps) => {
   const [fieldTypeDrafts, setFieldTypeDrafts] = useState<Record<string, string>>(
     {}
   );
-
   const getFieldKey = (field: FieldType, index: number): string => {
     return `${field.name}-${index}`;
   };
+
+  const getEffectiveType = (field: FieldType, index: number): string => {
+    const key = getFieldKey(field, index);
+    return fieldTypeDrafts[key] !== undefined ? fieldTypeDrafts[key] : field.type;
+  };
+
+  const hasEmptyType = data.fields.some((f, i) => !getEffectiveType(f, i).trim());
 
   const fieldTypeOptions = useMemo(() => {
     const dynamicClassTypes = allowedTypeNames
@@ -89,6 +95,7 @@ const NodeFields = (props: NodeFieldsProps) => {
           <>
             <Button
               size="small"
+              disabled={hasEmptyType}
               onClick={() => {
                 setNodes((oldNodes) => {
                   return oldNodes.map((node: UMLNode) => {
@@ -159,6 +166,9 @@ const NodeFields = (props: NodeFieldsProps) => {
                         sx={{ flex: 1, minWidth: 0 }}
                         defaultValue={field.name}
                         size="small"
+                        required
+                        error={!field.name.trim()}
+                        InputLabelProps={{ shrink: true }}
                         onChange={(e) => {
                           setNodes((oldNodes) => {
                             const [retrievedNode] = oldNodes.filter(
@@ -222,6 +232,9 @@ const NodeFields = (props: NodeFieldsProps) => {
                             variant="standard"
                             fullWidth
                             size="small"
+                            required
+                            InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
+                            error={!getEffectiveType(field, i).trim()}
                             onBlur={() => {
                               const fieldKey = getFieldKey(field, i);
                               const draftValue =
@@ -260,8 +273,15 @@ const NodeFields = (props: NodeFieldsProps) => {
                       />
                     </div>
 
-                    <FormControl fullWidth>
-                      <InputLabel id={`field-${i}-visibility`}>
+                    <FormControl
+                      fullWidth
+                      size="small"
+                      variant="standard"
+                      sx={{ mt: 1.5 }}
+                      className="nodrag"
+                      onMouseDown={(e) => e.nativeEvent.stopPropagation()}
+                    >
+                      <InputLabel size="small" id={`field-${i}-visibility`}>
                         Visibility
                       </InputLabel>
                       <Select
@@ -269,7 +289,7 @@ const NodeFields = (props: NodeFieldsProps) => {
                         id={`field-${i}-visibility-select`}
                         sx={{ overflow: "visible", zIndex: 9999 }}
                         value={field.visibility}
-                        label="Visibility"
+                        variant="standard"
                         size="small"
                         onChange={(e) => {
                           setNodes((oldNodes) => {
@@ -298,6 +318,15 @@ const NodeFields = (props: NodeFieldsProps) => {
                         <MenuItem value={"private"}>Private</MenuItem>
                       </Select>
                     </FormControl>
+
+                    {!getEffectiveType(field, i).trim() && (
+                      <Typography
+                        variant="caption"
+                        sx={{ color: "error.main", mt: 0.5, display: "block" }}
+                      >
+                        Field Type is required
+                      </Typography>
+                    )}
                   </AccordionDetails>
                 </Accordion>
               );

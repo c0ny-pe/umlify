@@ -1,4 +1,5 @@
-import { Dispatch, SetStateAction, useState, useRef } from "react";
+import { Dispatch, SetStateAction, useState, useRef, useEffect, useMemo } from "react";
+import { createTheme, ThemeProvider } from "@mui/material";
 import { Edge, Handle, NodeProps, Position } from "@xyflow/react";
 import UMLNode, { CustomNode, Visibility } from "../../model/UMLNode";
 
@@ -54,8 +55,27 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
   /** Set the current panel expanded considering fields and methods */
   const [expanded, setExpanded] = useState<string | false>(false);
   const [mouseHover, setMouseHover] = useState<boolean>(false);
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.classList.contains("dark")
+  );
 
   const nodeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const muiTheme = useMemo(
+    () => createTheme({ palette: { mode: isDark ? "dark" : "light" } }),
+    [isDark]
+  );
 
   /**
    * Translates the visibility attribute into its symbol using pattern matching.
@@ -77,7 +97,7 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
   };
 
   const handlePanelChange =
-    (panel: string) => (event: React.SyntheticEvent, newExpanded: boolean) => {
+    (panel: string) => (_event: React.SyntheticEvent, newExpanded: boolean) => {
       setExpanded(newExpanded ? panel : false);
     };
 
@@ -148,6 +168,9 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
     return handles;
   };
 
+  const hasEmptyFieldType = data.fields.some((f) => !f.type.trim());
+  const hasEmptyFieldName = data.fields.some((f) => !f.name.trim());
+
   /** Common props to be passed to each section of the node. */
   const commonSectionProps = {
     data,
@@ -159,6 +182,7 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
 
   return (
     <>
+      <ThemeProvider theme={muiTheme}>
       <div
         onMouseEnter={() => setMouseHover(true)}
         onMouseLeave={() => setMouseHover(false)}
@@ -179,6 +203,8 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
             getUniqueNodeName={getUniqueNodeName}
             onDuplicateName={onDuplicateName}
             onEmptyName={onEmptyName}
+            hasEmptyFieldType={hasEmptyFieldType}
+            hasEmptyFieldName={hasEmptyFieldName}
           />
 
           <NodeFields
@@ -200,6 +226,7 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
           />
         </div>
       </div>
+      </ThemeProvider>
     </>
   );
 };

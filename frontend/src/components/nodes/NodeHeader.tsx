@@ -30,6 +30,8 @@ type NodeHeaderProps = {
   getUniqueNodeName: (baseName: string, excludedName?: string) => string;
   onDuplicateName: (attemptedName: string) => void;
   onEmptyName: (message: string) => void;
+  hasEmptyFieldType: boolean;
+  hasEmptyFieldName: boolean;
 };
 
 const NodeHeader = (props: NodeHeaderProps) => {
@@ -45,6 +47,8 @@ const NodeHeader = (props: NodeHeaderProps) => {
     getUniqueNodeName,
     onDuplicateName,
     onEmptyName,
+    hasEmptyFieldType,
+    hasEmptyFieldName,
   } = props;
 
   const [nameInput, setNameInput] = useState(data.name);
@@ -117,7 +121,12 @@ const NodeHeader = (props: NodeHeaderProps) => {
                 }}
               />
 
-              <FormControl variant="standard" fullWidth>
+              <FormControl
+                variant="standard"
+                fullWidth
+                className="nodrag"
+                onMouseDown={(e) => e.nativeEvent.stopPropagation()}
+              >
                 <InputLabel id="input-change-type">Change Type</InputLabel>
                 <Select
                   labelId="label-change-type"
@@ -195,6 +204,14 @@ const NodeHeader = (props: NodeHeaderProps) => {
                   e.preventDefault();
                 }}
                 onClick={() => {
+                  if (hasEmptyFieldName) {
+                    onEmptyName("Todos los atributos deben tener un nombre asignado.");
+                    return;
+                  }
+                  if (hasEmptyFieldType) {
+                    onEmptyName("Todos los atributos deben tener un tipo asignado.");
+                    return;
+                  }
                   const canClose = commitClassNameChange();
                   if (canClose) {
                     setEditMode(false);

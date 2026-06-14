@@ -47,10 +47,7 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
     let cancelled = false;
 
     const renderHighlightedCode = async () => {
-      if (!open || loading || !code) {
-        setHighlightedHtml("");
-        return;
-      }
+      if (!open || loading || !code) return;
 
       try {
         const isDark = document.documentElement.classList.contains("dark");
@@ -80,8 +77,6 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
   const handleOpen = async () => {
     setOpen(true);
     setLoading(true);
-    setCode("");
-    setHighlightedHtml("");
 
     try {
       const response = await api.post<string>("/generator", payload, {
@@ -124,6 +119,12 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
         fullWidth
         maxWidth="md"
         PaperProps={{ className: "scala-export-dialog-paper" }}
+        TransitionProps={{
+          onExited: () => {
+            setCode("");
+            setHighlightedHtml("");
+          },
+        }}
       >
         <DialogTitle className="scala-export-dialog-title">Código fuente en Scala</DialogTitle>
         <DialogContent className="scala-export-dialog-content">
