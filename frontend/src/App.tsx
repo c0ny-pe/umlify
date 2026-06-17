@@ -7,10 +7,12 @@ import {
 } from "react";
 import "./App.css";
 import api from "./services/api";
+import { AUTH_TOKEN_KEY } from "./utils/authSession";
 import {
   ReactFlow,
   Background,
   Controls,
+  useReactFlow,
   type Edge,
   type OnNodesChange,
   type OnEdgesChange,
@@ -34,6 +36,7 @@ import SignUp from "./components/pages/Signup";
 import Library from "./components/pages/Library";
 import Settings from "./components/pages/Settings";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
+import { ThemeProvider } from "./hooks/useTheme";
 import { useGlobalContext, type GlobalContext } from "./hooks/useGlobalContext";
 import UMLNode, { EdgeType } from "./model/UMLNode";
 import Trait from "./model/Trait";
@@ -830,9 +833,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
