@@ -1,8 +1,8 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Moon, Sun } from "lucide-react";
 import "./form.css";
 import { useAuth } from "../../hooks/useAuth";
+import DarkModeToggle from "../DarkModeToggle";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -11,23 +11,6 @@ const Login = () => {
 
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    setIsDark(document.documentElement.classList.contains("dark"));
-  }, []);
-
-  const toggleTheme = () => {
-    const next = !isDark;
-    setIsDark(next);
-    if (next) {
-      document.documentElement.classList.add("dark");
-      window.localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      window.localStorage.setItem("theme", "light");
-    }
-  };
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -48,14 +31,7 @@ const Login = () => {
 
   return (
     <div className="auth-page">
-      <button
-        className="auth-theme-toggle"
-        type="button"
-        onClick={toggleTheme}
-        aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
-      >
-        {isDark ? <Sun size={18} strokeWidth={2} /> : <Moon size={18} strokeWidth={2} />}
-      </button>
+      <DarkModeToggle />
       <div className="auth-layout">
         <div className="auth-card">
           <h1 className="auth-title">Iniciar Sesión</h1>

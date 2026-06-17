@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import './form.css';
 import { useAuth } from "../../hooks/useAuth";
+import DarkModeToggle from "../DarkModeToggle";
 
 const SignUp = () => {
     const [username, setUsername] = useState("");
@@ -37,6 +38,7 @@ const SignUp = () => {
 
     return (
         <div className="auth-page">
+            <DarkModeToggle />
             <div className="auth-layout">
                 <div className="auth-card">
                     <h1 className="auth-title">Crear Cuenta</h1>
