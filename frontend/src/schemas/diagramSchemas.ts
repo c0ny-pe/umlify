@@ -45,9 +45,16 @@ export const diagramEdgeSchema = z.object({
   type: relationTypeSchema,
 });
 
+export const viewportSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  zoom: z.number(),
+});
+
 export const diagramPayloadSchema = z.object({
   nodes: z.array(diagramNodeSchema),
   edges: z.array(diagramEdgeSchema),
+  viewport: viewportSchema.optional(),
 });
 
 export type DiagramPayload = z.infer<typeof diagramPayloadSchema>;

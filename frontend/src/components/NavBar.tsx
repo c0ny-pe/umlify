@@ -6,6 +6,7 @@ import { Menu, Divider, IconButton } from '@mui/material';
 import { Check, FolderOpen, LogOut, Moon, PencilLine, Settings2, Sun, X } from 'lucide-react';
 import './styles/NavBar.css';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
 import { useRef, useEffect } from 'react';
 
 type InlineEditableTitleProps = {
@@ -78,16 +79,19 @@ const InlineEditableTitle = forwardRef<{ focusEdit: () => void }, InlineEditable
 );
 InlineEditableTitle.displayName = 'InlineEditableTitle';
 
+type SaveStatus = 'idle' | 'saving' | 'saved';
+
 type NavBarProps = {
     editorActions?: ReactNode;
     diagramTitle?: string | null;
     onDiagramTitleChange?: (title: string) => void;
     diagramId?: string | null;
+    saveStatus?: SaveStatus;
 };
 
-const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarProps) => {
+const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus }: NavBarProps) => {
     const { user, isAuthenticated, logout } = useAuth();
-    const [isDark, setIsDark] = useState<boolean>(false);
+    const { isDark, toggle: toggleTheme } = useTheme();
     const { pathname } = useLocation();
     const navigate = useNavigate();
     const titleRef = useRef<{ focusEdit: () => void } | null>(null);
@@ -129,71 +133,65 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange }: NavBarPro
         navigate('/login', { replace: true });
     };
 
-    useEffect(() => {
-        const saved = window.localStorage.getItem('theme');
-        const prefersDark = saved === 'dark';
-        setIsDark(prefersDark);
-        if (prefersDark) document.documentElement.classList.add('dark');
-        else document.documentElement.classList.remove('dark');
-    }, []);
-
-    const toggleTheme = () => {
-        const next = !isDark;
-        setIsDark(next);
-        if (next) {
-            document.documentElement.classList.add('dark');
-            window.localStorage.setItem('theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            window.localStorage.setItem('theme', 'light');
-        }
-    };
-
     if (isAuthenticated) {
         return (
             <nav className="navbar navbar-authenticated">
-                <Link to="/" className="brand-link-authenticated">
-                    UMLify
-                </Link>
+                {/* Left zone: logo + title + save indicator */}
+                <div className="navbar-left">
+                    <Link to="/" className="brand-link-authenticated">
+                        UMLify
+                    </Link>
+                    {isEditorView && (
+                        <>
+                            <div className="navbar-left-divider" />
+                            <div className="navbar-diagram-title">
+                                {onDiagramTitleChange ? (
+                                    <div className="navbar-diagram-title-inner">
+                                        <InlineEditableTitle
+                                            ref={titleRef}
+                                            value={diagramTitle ?? ''}
+                                            onChange={onDiagramTitleChange}
+                                            onEditingChange={setIsEditingTitle}
+                                        />
+                                        {!isEditingTitle && (
+                                            <MuiIconButton
+                                                size="small"
+                                                aria-label="Editar nombre"
+                                                className="navbar-diagram-edit-button"
+                                                onClick={() => titleRef.current?.focusEdit()}
+                                            >
+                                                <PencilLine size={16} strokeWidth={2} />
+                                            </MuiIconButton>
+                                        )}
+                                    {diagramTitle != null && (
+                                        <span className={`navbar-save-status navbar-save-status--${saveStatus ?? 'idle'}`} title={saveStatus === 'saving' ? 'Guardando...' : saveStatus === 'saved' ? 'Guardado' : 'Guardado'}>
+                                            {saveStatus === 'saving'
+                                                ? <Loader2 size={14} className="navbar-save-spinner" />
+                                                : <Cloud size={14} />
+                                            }
+                                            {saveStatus === 'saved' && <Check size={10} className="navbar-save-check" />}
+                                        </span>
+                                    )}
+                                    </div>
+                                ) : (
+                                    <span>{diagramTitle ?? ''}</span>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Right zone: export + avatar */}
                 <div className="navbar-right">
                     {isEditorView && editorActions && (
                         <>
-                            <div className="navbar-export-with-title">
-                                <div className="navbar-diagram-title">
-                                    {onDiagramTitleChange ? (
-                                        <div className="navbar-diagram-title-inner">
-                                            <InlineEditableTitle
-                                                ref={titleRef}
-                                                value={diagramTitle ?? 'Diagrama sin título'}
-                                                onChange={onDiagramTitleChange}
-                                                onEditingChange={setIsEditingTitle}
-                                            />
-                                            {!isEditingTitle && (
-                                                <MuiIconButton
-                                                    size="small"
-                                                    aria-label="Editar nombre"
-                                                    className="navbar-diagram-edit-button"
-                                                    onClick={() => {
-                                                        titleRef.current?.focusEdit();
-                                                    }}
-                                                >
-                                                    <PencilLine size={16} strokeWidth={2} />
-                                                </MuiIconButton>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <span>{diagramTitle ?? 'Diagrama sin título'}</span>
-                                    )}
-                                </div>
-
-                                <button
-                                    type="button"
-                                    className="navbar-export-trigger"
-                                    onClick={handleOpenExportMenu}
-                                >
-                                    Exportar
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                className="navbar-export-trigger"
+                                onClick={handleOpenExportMenu}
+                            >
+                                Exportar
+                            </button>
                             <Menu
                                 anchorEl={exportAnchorEl}
                                 open={exportMenuOpen}

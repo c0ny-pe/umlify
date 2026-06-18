@@ -9,6 +9,7 @@ type HydratedDiagram = {
   nodes: UMLNode[];
   edges: Edge[];
   nextNodeId: number;
+  viewport?: { x: number; y: number; zoom: number };
 };
 
 function buildNodes(payload: DiagramPayload): UMLNode[] {

@@ -70,6 +70,29 @@ function buildDiagramPayload(nodes: GlobalContext["nodes"], edges: GlobalContext
   };
 }
 
+type Viewport = { x: number; y: number; zoom: number };
+
+function FitViewOnLoad({ active, onDone, savedViewport }: { active: boolean; onDone: () => void; savedViewport?: Viewport | null }) {
+  const { setViewport } = useReactFlow();
+  const onDoneRef = useRef(onDone);
+  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
+
+  useEffect(() => {
+    if (!active) return;
+    const id = setTimeout(() => {
+      if (savedViewport) {
+        setViewport(savedViewport, { duration: 0 });
+      }
+      onDoneRef.current();
+    }, 150);
+    return () => clearTimeout(id);
+  }, [active, savedViewport, setViewport]);
+
+  return null;
+}
+
+type SaveStatus = 'idle' | 'saving' | 'saved';
+
 type EditorScreenProps = {
   ctx: GlobalContext;
   onNodesChange: OnNodesChange;
@@ -79,6 +102,8 @@ type EditorScreenProps = {
   resetEditMode: () => void;
   setDiagramTitle?: (title: string | null) => void;
   setDiagramId?: (id: string | null) => void;
+  diagramTitle?: string | null;
+  setSaveStatus?: (s: SaveStatus) => void;
 };
 
 function EditorScreen({
@@ -90,18 +115,31 @@ function EditorScreen({
   resetEditMode,
   setDiagramTitle,
   setDiagramId,
+  diagramTitle,
+  setSaveStatus,
 }: EditorScreenProps) {
   const { diagramId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loadingDiagram, setLoadingDiagram] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [needsFitView, setNeedsFitView] = useState(false);
+  const [savedViewport, setSavedViewport] = useState<Viewport | null>(null);
   const {
     setNodes,
     setEdges,
     setNextNodeId,
     setToast,
   } = ctx;
+
+  const saveTimeoutRef = useRef<number | null>(null);
+  const hasPendingSaveRef = useRef(false);
+  const viewportSaveTimeoutRef = useRef<number | null>(null);
+  const diagramLoadedRef = useRef(false);
+  const justLoadedRef = useRef(false);
+
+  const diagramTitleRef = useRef<string | null>(diagramTitle ?? null);
+  diagramTitleRef.current = diagramTitle ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -125,6 +163,8 @@ function EditorScreen({
 
       setLoadingDiagram(true);
       setLoadingError(null);
+      hasPendingSaveRef.current = false;
+      diagramLoadedRef.current = false;
       clearEditor();
 
       try {
@@ -142,6 +182,10 @@ function EditorScreen({
         setEdges(hydrated.edges);
         setNextNodeId(hydrated.nextNodeId);
         resetEditMode();
+        setSavedViewport(hydrated.viewport ?? null);
+        if (hydrated.viewport) setNeedsFitView(true);
+        diagramLoadedRef.current = true;
+        justLoadedRef.current = true;
       } catch {
         if (!cancelled) {
           setLoadingError("No pudimos cargar el diagrama guardado.");
@@ -164,57 +208,137 @@ function EditorScreen({
     };
   }, [diagramId]);
 
-  // Autosave debounced
-  const saveTimeoutRef = useRef<number | null>(null);
+  // All of these are updated synchronously every render so they're never stale
+  // in beforeunload or flush-on-unmount callbacks (which run outside React's
+  // effect scheduling and could otherwise read an outdated .current).
+  const rfInstanceRef = useRef(ctx.reactFlowInstance);
+  rfInstanceRef.current = ctx.reactFlowInstance;
+  // Updated by onViewportChange on the ReactFlow component — reliable for all
+  // viewport changes (pan, zoom, fitView, setViewport) regardless of instance state.
+  const latestViewportRef = useRef<Viewport | null>(null);
+  const nodesRef = useRef(ctx.nodes);
+  nodesRef.current = ctx.nodes;
+  const edgesRef = useRef(ctx.edges);
+  edgesRef.current = ctx.edges;
+  const diagramIdRef = useRef<string | undefined>(diagramId);
+  diagramIdRef.current = diagramId;
+  const loadingDiagramRef = useRef(loadingDiagram);
+  loadingDiagramRef.current = loadingDiagram;
+
+  const buildPayload = () => ({
+    nodes: nodesRef.current.map((n) => ({
+      id: String(n.id),
+      name: n.name,
+      classType: n.classType,
+      fields: n.fields.filter((f) => f.type && f.type.trim() !== ""),
+      methods: n.methods,
+      x: n.x,
+      y: n.y,
+    })),
+    edges: edgesRef.current.map((e) => ({
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.sourceHandle,
+      targetHandle: e.targetHandle,
+      type: (e as any).type,
+    })),
+    viewport: latestViewportRef.current ?? rfInstanceRef.current?.getViewport(),
+  });
 
   useEffect(() => {
-    // Clear previous timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    if (!diagramId || loadingDiagram) return;
+    if (justLoadedRef.current) { justLoadedRef.current = false; return; }
 
-    // Don't autosave if no diagram ID or still loading
-    if (!diagramId || loadingDiagram) {
-      return;
-    }
+    // Snapshot current data for this debounce window
+    const nodes = ctx.nodes;
+    const edges = ctx.edges;
 
-    // Set new debounced save
+    hasPendingSaveRef.current = true;
     saveTimeoutRef.current = setTimeout(async () => {
+      hasPendingSaveRef.current = false;
+      setSaveStatus?.('saving');
       try {
-        const payload = {
-          nodes: ctx.nodes.map((n) => ({
-            id: String(n.id),
-            name: n.name,
-            classType: n.classType,
-            fields: n.fields.filter((f) => f.type && f.type.trim() !== ""),
-            methods: n.methods,
-            x: n.x,
-            y: n.y,
-          })),
-          edges: ctx.edges.map((e) => ({
-            source: e.source,
-            target: e.target,
-            sourceHandle: e.sourceHandle,
-            targetHandle: e.targetHandle,
-            type: (e as any).type,
-          })),
-        };
-
         await api.put(`/diagrams/${diagramId}`, {
-          name: "Diagrama sin título",
-          content: payload,
+          name: diagramTitleRef.current ?? "Diagrama sin título",
+          content: {
+            nodes: nodes.map((n) => ({
+              id: String(n.id),
+              name: n.name,
+              classType: n.classType,
+              fields: n.fields.filter((f) => f.type && f.type.trim() !== ""),
+              methods: n.methods,
+              x: n.x,
+              y: n.y,
+            })),
+            edges: edges.map((e) => ({
+              source: e.source,
+              target: e.target,
+              sourceHandle: e.sourceHandle,
+              targetHandle: e.targetHandle,
+              type: (e as any).type,
+            })),
+            viewport: rfInstanceRef.current?.getViewport() ?? latestViewportRef.current,
+          },
         });
+        setSaveStatus?.('saved');
+        setTimeout(() => setSaveStatus?.('idle'), 2000);
       } catch (err) {
         console.error("Error saving diagram:", err);
+        setSaveStatus?.('idle');
       }
-    }, 2000); // Debounce: save 2 seconds after last change
+    }, 500);
 
     return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, [ctx.nodes, ctx.edges, diagramId, loadingDiagram]);
+
+  // Flush pending save immediately when navigating away within the SPA
+  useEffect(() => {
+    return () => {
+      const hasPending = hasPendingSaveRef.current || viewportSaveTimeoutRef.current !== null;
+      if (!hasPending || !diagramIdRef.current || loadingDiagramRef.current || !diagramLoadedRef.current) return;
+      hasPendingSaveRef.current = false;
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      if (viewportSaveTimeoutRef.current) clearTimeout(viewportSaveTimeoutRef.current);
+      viewportSaveTimeoutRef.current = null;
+      api.put(`/diagrams/${diagramIdRef.current}`, {
+        name: diagramTitleRef.current ?? "Diagrama sin título",
+        content: buildPayload(),
+      }).catch(console.error);
+    };
+  }, []);
+
+  // Flush pending save on page reload or tab close (keepalive survives unload)
+  useEffect(() => {
+    const apiBase = String((import.meta as any).env?.VITE_API_TARGET || "http://localhost:3001").replace(/\/$/, "") + "/api";
+
+    const handleBeforeUnload = () => {
+      const hasPending = hasPendingSaveRef.current || viewportSaveTimeoutRef.current !== null;
+      if (!hasPending || !diagramIdRef.current || loadingDiagramRef.current || !diagramLoadedRef.current) return;
+      hasPendingSaveRef.current = false;
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      if (viewportSaveTimeoutRef.current) clearTimeout(viewportSaveTimeoutRef.current);
+      viewportSaveTimeoutRef.current = null;
+      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      fetch(`${apiBase}/diagrams/${diagramIdRef.current}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          name: diagramTitleRef.current ?? "Diagrama sin título",
+          content: buildPayload(),
+        }),
+        keepalive: true,
+      });
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   return (
     <div className="canvas-shell">
@@ -227,6 +351,7 @@ function EditorScreen({
       <div
         className="reactflow-wrapper"
         ref={ctx.reactFlowWrapper}
+        style={needsFitView ? { opacity: 0 } : { opacity: 1, transition: 'opacity 0.15s ease' }}
         onContextMenu={(e) => {
           e.preventDefault();
           ctx.setRightClicked(true);
@@ -430,11 +555,26 @@ function EditorScreen({
             onEdgesChange={onEdgesChange}
             onInit={ctx.setReactFlowInstance}
             onConnectEnd={onConnectEnd}
+            onViewportChange={(vp) => {
+              latestViewportRef.current = vp;
+              if (!diagramLoadedRef.current || !diagramIdRef.current || loadingDiagramRef.current) return;
+              if (viewportSaveTimeoutRef.current) clearTimeout(viewportSaveTimeoutRef.current);
+              viewportSaveTimeoutRef.current = window.setTimeout(async () => {
+                viewportSaveTimeoutRef.current = null;
+                try {
+                  await api.put(`/diagrams/${diagramIdRef.current}`, {
+                    name: diagramTitleRef.current ?? "Diagrama sin título",
+                    content: buildPayload(),
+                  });
+                } catch { /* silent — node/edge autosave will retry if needed */ }
+              }, 1000);
+            }}
             connectionMode={ConnectionMode.Loose}
             fitView={false}
           >
             <Background />
             <Controls />
+            <FitViewOnLoad active={needsFitView} onDone={() => setNeedsFitView(false)} savedViewport={savedViewport} />
           </ReactFlow>
           <ToastAlert
             toastKey={ctx.toast?.version}
@@ -453,6 +593,7 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
   const [diagramTitle, setDiagramTitle] = useState<string | null>(null);
   const [diagramIdState, setDiagramIdState] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [editModeByNodeId, setEditModeByNodeId] = useState<
     Record<number, boolean>
   >({});
@@ -503,13 +644,16 @@ function AppContent() {
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
-      if (changes.length > 0 && changes[0].type !== "remove") {
+      // Ignore dimensions (ReactFlow internal measurement) and select (visual only) —
+      // neither lives in the UMLNode model, and both would create a new ctx.nodes
+      // reference that triggers autosave even when the user changed nothing.
+      const relevant = changes.filter(
+        (c) => c.type !== "remove" && c.type !== "select" && c.type !== "dimensions"
+      );
+      if (relevant.length > 0) {
         ctx.setNodes((nodes) => {
           const nodeList = nodes.map((n) => n.getNode());
-          // We can only apply changes to a Node[] type.
-          const modifiedNodes = applyNodeChanges(changes, nodeList);
-
-          // Update each node with its correspondant modified node.
+          const modifiedNodes = applyNodeChanges(relevant, nodeList);
           for (let i = 0; i < nodes.length; i++) {
             nodes[i].updatePosition(modifiedNodes[i]);
           }
@@ -769,7 +913,7 @@ function AppContent() {
         payload={buildDiagramPayload(ctx.nodes, ctx.edges)}
         onToast={ctx.setToast}
       />
-      <ExportPNGButton nodes={ctx.nodes.map((node) => node.getNode())} />
+      <ExportPNGButton nodes={ctx.nodes.map((node) => node.getNode())} rfInstance={ctx.reactFlowInstance} />
     </>
   );
 
@@ -816,11 +960,11 @@ function AppContent() {
         <Route path="/" element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
         <Route
           path="/editor"
-            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
         />
         <Route
             path="/editor/:diagramId"
-            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
         />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/signup" element={isAuthenticated ? <Navigate to="/" replace /> : <SignUp />} />
