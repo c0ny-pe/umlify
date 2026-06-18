@@ -86,20 +86,16 @@ export function AbstractEdge({
     targetHandleId
   );
 
-  // For vertical connections (Top↔Bottom handles), snap both ends to the same X
-  // so the edge is always a straight line. getSmoothStepPath introduces a
-  // horizontal "step" whenever sourceX ≠ targetX, which looks wrong for UML
-  // inheritance/implementation arrows that should go straight up/down.
-  const isVertical =
-    (sourcePosition === 'top' || sourcePosition === 'bottom') &&
-    (targetPosition === 'top' || targetPosition === 'bottom');
-  const midX = isVertical ? (sourceX + targetX) / 2 : null;
-
+  // Route the edge orthogonally between the actual handle coordinates. When the
+  // two handles share an X (vertically aligned nodes) the path is already a
+  // straight line; when they don't, getSmoothStepPath bends it so both ends stay
+  // attached to their nodes — regardless of which side (top/bottom/left/right)
+  // the edge connects to.
   const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX: midX ?? sourceX,
+    sourceX,
     sourceY,
     sourcePosition,
-    targetX: midX ?? targetX,
+    targetX,
     targetY,
     targetPosition,
     borderRadius: 0,
