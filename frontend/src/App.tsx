@@ -6,7 +6,7 @@ import {
   useRef,
 } from "react";
 import "./App.css";
-import api from "./services/api";
+import api, { API_BASE_URL } from "./services/api";
 import { AUTH_TOKEN_KEY } from "./utils/authSession";
 import {
   ReactFlow,
@@ -316,7 +316,7 @@ function EditorScreen({
 
   // Flush pending save on page reload or tab close (keepalive survives unload)
   useEffect(() => {
-    const apiBase = String((import.meta as any).env?.VITE_API_TARGET || "http://localhost:3001").replace(/\/$/, "") + "/api";
+    const apiBase = API_BASE_URL;
 
     const handleBeforeUnload = () => {
       const hasPending = hasPendingSaveRef.current || viewportSaveTimeoutRef.current !== null;
@@ -1000,11 +1000,16 @@ function AppContent() {
   );
 }
 
+// React Router basename: matches Vite's base path so client routes resolve under
+// the deploy subpath (e.g. "/umlify"). Falls back to "/" in local dev.
+const ROUTER_BASENAME =
+  String((import.meta as any).env?.BASE_URL ?? "/").replace(/\/+$/, "") || "/";
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={ROUTER_BASENAME}>
           <AppContent />
         </BrowserRouter>
       </AuthProvider>
