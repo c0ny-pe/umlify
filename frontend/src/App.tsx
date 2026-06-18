@@ -43,6 +43,7 @@ import Trait from "./model/Trait";
 import AbstractClass from "./model/AbstractClass";
 import ConcreteClass from "./model/ConcreteClass";
 import ExportPNGButton from "./components/ExportPNGButton";
+import ExportSVGButton from "./components/ExportSVGButton";
 import ExportScalaButton, { type DiagramPayload } from "./components/ExportScalaButton";
 import ToastAlert from "./components/ToastAlert";
 import { hydrateDiagramData } from "./utils/diagramHydration";
@@ -915,6 +916,7 @@ function AppContent() {
         payload={buildDiagramPayload(ctx.nodes, ctx.edges)}
         onToast={ctx.setToast}
       />
+      <ExportSVGButton nodes={ctx.nodes.map((node) => node.getNode())} rfInstance={ctx.reactFlowInstance} />
       <ExportPNGButton nodes={ctx.nodes.map((node) => node.getNode())} rfInstance={ctx.reactFlowInstance} />
     </>
   );
