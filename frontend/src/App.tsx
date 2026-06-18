@@ -46,6 +46,7 @@ import ExportPNGButton from "./components/ExportPNGButton";
 import ExportScalaButton, { type DiagramPayload } from "./components/ExportScalaButton";
 import ToastAlert from "./components/ToastAlert";
 import { hydrateDiagramData } from "./utils/diagramHydration";
+import { applyDagreLayout } from "./utils/autoLayout";
 import { EditorCanvasProvider } from "./components/editorCanvasContext";
 import { edgeTypes, nodeTypes } from "./components/editorTypes";
 
@@ -944,9 +945,17 @@ function AppContent() {
     ]
   );
 
+  const handleAutoLayout = useCallback(() => {
+    const rfInstance = ctx.reactFlowInstance;
+    if (!rfInstance || ctx.nodes.length === 0) return;
+    applyDagreLayout(ctx.nodes, ctx.edges, rfInstance);
+    ctx.setNodes((prev) => [...prev]);
+    setTimeout(() => rfInstance.fitView({ padding: 0.2, duration: 200 }), 50);
+  }, [ctx]);
+
   return (
     <BrowserRouter>
-      <NavBar editorActions={editorActions} diagramTitle={diagramTitle} onDiagramTitleChange={async (nextTitle: string) => {
+      <NavBar editorActions={editorActions} diagramTitle={diagramTitle} saveStatus={saveStatus} onAutoLayout={handleAutoLayout} onDiagramTitleChange={async (nextTitle: string) => {
         // Update title optimistically and trigger server update with current content
         setDiagramTitle(nextTitle);
         if (!diagramIdState) return;

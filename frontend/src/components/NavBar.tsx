@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { IconButton as MuiIconButton, Switch } from '@mui/material';
 import { forwardRef, useImperativeHandle } from 'react';
 import { Menu, Divider, IconButton } from '@mui/material';
-import { Check, FolderOpen, LogOut, Moon, PencilLine, Settings2, Sun, X } from 'lucide-react';
+import { Check, Cloud, FolderOpen, Loader2, LogOut, Moon, PencilLine, Settings2, Sun, Waypoints, X } from 'lucide-react';
 import './styles/NavBar.css';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
@@ -87,9 +87,10 @@ type NavBarProps = {
     onDiagramTitleChange?: (title: string) => void;
     diagramId?: string | null;
     saveStatus?: SaveStatus;
+    onAutoLayout?: () => void;
 };
 
-const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus }: NavBarProps) => {
+const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus, onAutoLayout }: NavBarProps) => {
     const { user, isAuthenticated, logout } = useAuth();
     const { isDark, toggle: toggleTheme } = useTheme();
     const { pathname } = useLocation();
@@ -178,6 +179,21 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus 
                                 )}
                             </div>
                         </>
+                    )}
+                </div>
+
+                {/* Center zone: always present so the 3-column grid doesn't collapse */}
+                <div className="navbar-center">
+                    {isEditorView && onAutoLayout && (
+                        <button
+                            type="button"
+                            className="navbar-layout-trigger"
+                            onClick={onAutoLayout}
+                            title="Auto-organizar diagrama"
+                        >
+                            <Waypoints size={15} strokeWidth={2} />
+                            Auto-layout
+                        </button>
                     )}
                 </div>
 

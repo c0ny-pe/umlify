@@ -1,8 +1,7 @@
-import { getNodesBounds, Node } from "@xyflow/react";
+import { getNodesBounds, type Node, type ReactFlowInstance } from "@xyflow/react";
 import { toPng } from "html-to-image";
 import { Image } from 'lucide-react';
 
-/** Padding in pixels applied around all nodes in the exported image. */
 const MARGIN = 48;
 
 /**
@@ -26,11 +25,13 @@ const downloadImage = (dataUrl: string) => {
  *
  * @param {Object} props The props passed to this component.
  * @param {Node[]} props.nodes The canvas' nodes.
+ * @param {ReactFlowInstance} props.rfInstance The ReactFlow instance used to read
+ *   measured node dimensions at click-time.
  *
  * @returns {JSX.Element} The button to export the diagram as a PNG image.
  * @author Máximo Flores Valenzuela <https://github.com/maxfloresv>
  */
-const ExportPNGButton = ({ nodes }: { nodes: Node[] }): JSX.Element => {
+const ExportPNGButton = ({ nodes, rfInstance }: { nodes: Node[]; rfInstance?: ReactFlowInstance | null }): JSX.Element => {
   /**
    * Handles the download of the diagram as a PNG image.
    * Computes the bounding box of all nodes, builds an image sized to fit them
@@ -40,15 +41,26 @@ const ExportPNGButton = ({ nodes }: { nodes: Node[] }): JSX.Element => {
   const handleDownload = () => {
     if (!nodes.length) return;
 
-    const bounds = getNodesBounds(nodes);
+    // Read measured dimensions at click-time from the internal store
+    const enriched = nodes.map((n) => {
+      const measured = rfInstance?.getInternalNode(n.id)?.measured;
+      return measured?.width && measured?.height
+        ? { ...n, measured, width: measured.width, height: measured.height }
+        : n;
+    });
+
+    const bounds = getNodesBounds(enriched);
     const imageWidth = Math.ceil(bounds.width) + MARGIN * 2;
     const imageHeight = Math.ceil(bounds.height) + MARGIN * 2;
 
     const viewportEl = document.querySelector('.react-flow__viewport') as HTMLElement;
     if (!viewportEl) return;
 
+    const backgroundColor = getComputedStyle(document.documentElement)
+      .getPropertyValue('--surface').trim() || 'white';
+
     toPng(viewportEl, {
-      backgroundColor: 'white',
+      backgroundColor,
       width: imageWidth,
       height: imageHeight,
       style: {

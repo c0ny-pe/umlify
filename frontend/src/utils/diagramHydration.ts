@@ -62,6 +62,7 @@ export function hydrateDiagramData(payload: DiagramPayload): HydratedDiagram {
     nodes,
     edges,
     nextNodeId,
+    viewport: payload.viewport,
   };
 }
 
