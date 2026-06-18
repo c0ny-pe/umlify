@@ -56,3 +56,31 @@
 .react-flow__node:has(.Mui-expanded) {
   z-index: 1000 !important;
 }
+
+/* ---- Colores pastel por tipo de entidad ---- */
+/* Cada tipo tiene un color distinto. El cuerpo es el tono claro y la cabecera
+   (donde va el nombre) un tono mas oscuro del mismo color. */
+
+/* Clase concreta -> azul */
+.box-container.concreteClass {
+  background-color: #eaf2fc;
+}
+.title-container.concreteClass {
+  background-color: #b9d3f0;
+}
+
+/* Clase abstracta -> verde */
+.box-container.abstractClass {
+  background-color: #e9f6ed;
+}
+.title-container.abstractClass {
+  background-color: #bbe1c8;
+}
+
+/* Trait / interfaz -> lila */
+.box-container.trait {
+  background-color: #f3ecfb;
+}
+.title-container.trait {
+  background-color: #d6c2f0;
+}
