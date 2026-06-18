@@ -84,12 +84,20 @@ describe('generateScalaCode', () => {
       expect(code).toContain('def greet(): String = ???');
     });
 
-    it('does NOT append = ??? to abstract class methods', () => {
+    it('does NOT append = ??? to abstract methods in abstract class', () => {
+      const abstractMethod = { ...method('area', [], 'Double'), abstract: true };
       const code = generateScalaCode(model([
-        cls({ id: '1', name: 'Shape', classType: 'abstractClass', methods: [method('area', [], 'Double')] }),
+        cls({ id: '1', name: 'Shape', classType: 'abstractClass', methods: [abstractMethod] }),
       ]));
       expect(code).toContain('def area(): Double');
       expect(code).not.toContain('def area(): Double = ???');
+    });
+
+    it('appends = ??? to concrete methods in abstract class', () => {
+      const code = generateScalaCode(model([
+        cls({ id: '1', name: 'Shape', classType: 'abstractClass', methods: [method('describe', [], 'String')] }),
+      ]));
+      expect(code).toContain('def describe(): String = ???');
     });
 
     it('defaults return type to Unit when codType is null', () => {
@@ -124,12 +132,20 @@ describe('generateScalaCode', () => {
       expect(code).not.toContain('trait Named(');
     });
 
-    it('generates trait method as abstract signature', () => {
+    it('generates abstract trait method as signature only', () => {
+      const abstractMethod = { ...method('fly', [], 'Unit'), abstract: true };
       const code = generateScalaCode(model([
-        cls({ id: '1', name: 'Flyable', classType: 'trait', methods: [method('fly', [], 'Unit')] }),
+        cls({ id: '1', name: 'Flyable', classType: 'trait', methods: [abstractMethod] }),
       ]));
       expect(code).toContain('def fly(): Unit');
       expect(code).not.toContain('def fly(): Unit = ???');
+    });
+
+    it('generates concrete trait method with = ???', () => {
+      const code = generateScalaCode(model([
+        cls({ id: '1', name: 'Flyable', classType: 'trait', methods: [method('fly', [], 'Unit')] }),
+      ]));
+      expect(code).toContain('def fly(): Unit = ???');
     });
   });
 

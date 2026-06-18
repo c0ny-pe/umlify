@@ -12,11 +12,12 @@ function indent(lines: string[], spaces = 2): string[] {
 }
 
 function formatField(f: Class["fields"][number]): string {
-    return `${f.visibility === "public" ? "" : f.visibility + " "}val ${f.name}: ${f.type}`;
+    const vis = f.visibility && f.visibility !== "public" ? f.visibility + " " : "";
+    return `${vis}val ${f.name}: ${f.type}`;
 }
 
 function formatMethodSignature(m: Class["methods"][number]): string {
-    const visibility = m.visibility !== "public" ? m.visibility + " " : "";
+    const visibility = m.visibility && m.visibility !== "public" ? m.visibility + " " : "";
     const returnType = m.codType && m.codType.trim().length > 0 ? m.codType : "Unit";
     return `${visibility}def ${m.name}(${formatParams(m.domType)}): ${returnType}`;
 }
@@ -117,7 +118,8 @@ function createTraitBody(cls: Class, rel: ClassRelations): string[] {
     if (cls.fields.length && cls.methods.length) body.push("");
 
     cls.methods.forEach((m) => {
-        body.push(formatMethodSignature(m));
+        const signature = formatMethodSignature(m);
+        body.push(m.abstract ? signature : `${signature} = ???`);
     });
 
     return body;
@@ -153,11 +155,7 @@ function createClassBody(cls: Class, rel: ClassRelations): string[] {
 
     cls.methods.forEach((m) => {
         const signature = formatMethodSignature(m);
-        if (cls.classType === "abstractClass") {
-            body.push(signature);
-        } else {
-            body.push(`${signature} = ???`);
-        }
+        body.push(m.abstract ? signature : `${signature} = ???`);
     });
 
     return body;
