@@ -170,7 +170,7 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus,
                                                 ? <Loader2 size={14} className="navbar-save-spinner" />
                                                 : <Cloud size={14} />
                                             }
-                                            {saveStatus === 'saved' && <Check size={10} className="navbar-save-check" />}
+                                            {saveStatus !== 'saving' && <Check size={10} className="navbar-save-check" />}
                                         </span>
                                     )}
                                     </div>
