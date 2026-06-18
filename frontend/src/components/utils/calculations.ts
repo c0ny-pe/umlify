@@ -1,4 +1,5 @@
 import { Node, InternalNode, Position } from '@xyflow/react';
+import InvalidHandleException from '../../exceptions/InvalidHandleException';
 
 /**
  * Defines calculations to compute dynamically the handles to use in a node connection.
@@ -33,7 +34,7 @@ interface EdgeParams {
 function getParams(
   nodeA: InternalNode<Node>,
   nodeB: InternalNode<Node>,
-  _handleId: string,
+  handleId: string,
 ): [number, number, Position] {
   const centerA = getNodeCenter(nodeA);
   const centerB = getNodeCenter(nodeB);
@@ -52,48 +53,53 @@ function getParams(
     position = centerA.y > centerB.y ? Position.Top : Position.Bottom;
   }
 
-  const [x, y] = getBorderPointToward(nodeA, position, centerB);
+  const [x, y] = getHandleCoordsByPosition(nodeA, position, handleId);
   return [x, y, position];
 }
 
 /**
- * Computes the point on a node's border (on the given side) that faces a target
- * point. Biasing each attachment toward the other node makes edges fan out
- * toward their targets instead of all meeting at the side's center, which
- * reduces crossings when several edges share a node.
- *
- * @param {InternalNode<Node>} node - The node that owns the border.
- * @param {Position} side - The side of the node the edge attaches to.
- * @param {{ x: number; y: number }} toward - The point to face (the other node's center).
- *
- * @returns {[number, number]} The border attachment coordinates.
+ * Calculates the coordinates of a handle based on its position.
+ * 
+ * @param {InternalNode<Node>} node - The node that have the handle.
+ * @param {Position} handlePosition - The position of the handle.
+ * @param {string} handleId - The base handle identifier.
+ * 
+ * @returns {[number, number]} The coordinates of the handle.
  */
-function getBorderPointToward(
+function getHandleCoordsByPosition(
   node: InternalNode<Node>,
-  side: Position,
-  toward: { x: number; y: number }
+  handlePosition: Position,
+  handleId: string
 ): [number, number] {
-  const left = node.internals.positionAbsolute.x;
-  const top = node.internals.positionAbsolute.y;
-  const width = node.measured.width ?? 0;
-  const height = node.measured.height ?? 0;
-
-  // Keep the attachment away from the corners so bends stay clean.
-  const margin = Math.min(20, width / 2, height / 2);
-  const clampX = (v: number) => Math.max(left + margin, Math.min(left + width - margin, v));
-  const clampY = (v: number) => Math.max(top + margin, Math.min(top + height - margin, v));
-
-  switch (side) {
-    case Position.Top:
-      return [clampX(toward.x), top];
-    case Position.Bottom:
-      return [clampX(toward.x), top + height];
-    case Position.Left:
-      return [left, clampY(toward.y)];
-    case Position.Right:
-    default:
-      return [left + width, clampY(toward.y)];
+  if (!node.internals.handleBounds
+    || !node.internals.handleBounds.source
+    || (node.internals.handleBounds.target
+      && node.internals.handleBounds.target.length > 0)) {
+    throw new InvalidHandleException();
   }
+
+  /**
+   * The base handle identifier has the form xxxx-xxxx-id, where id is a number
+   * that identifies a handle given a certain position (similar to a number line).
+   * 
+   * @see {StyledNode} for further information.
+   */
+  const positionId = handleId.split("-").pop() as string;
+  const handle = node.internals.handleBounds.source.find(
+    (h) => h.position === handlePosition && h.id?.endsWith(positionId)
+  );
+
+  if (!handle) {
+    throw new InvalidHandleException();
+  }
+
+  let offsetX: number = handle.width / 2;
+  let offsetY: number = handle.height / 2;
+
+  const x = node.internals.positionAbsolute.x + handle.x + offsetX;
+  const y = node.internals.positionAbsolute.y + handle.y + offsetY;
+
+  return [x, y];
 }
 
 /**
