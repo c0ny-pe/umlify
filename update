@@ -20,5 +20,4 @@ npm install
 VITE_BASE_PATH=/umlify/ npm run build
 cd ..
 
-# startOrRestart: starts the app on first deploy, restarts it on later ones.
-pm2 startOrRestart ecosystem.config.js --update-env
+pm2 restart umlify
