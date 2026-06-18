@@ -110,6 +110,25 @@ html.dark .navbar-diagram-edit-button svg * {
   stroke: #ffffff !important;
 }
 
+.navbar-create-name-btn {
+  appearance: none;
+  border: 1.5px dashed var(--card-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted, #999);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.15rem 0.55rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  font-family: inherit;
+}
+
+.navbar-create-name-btn:hover {
+  border-color: var(--text-color);
+  color: var(--text-color);
+}
+
 .navbar-diagram-title-button {
   background: transparent;
   border: none;

@@ -13,11 +13,12 @@ type InlineEditableTitleProps = {
         value: string;
         onChange: (next: string) => void;
         onEditingChange?: (editing: boolean) => void;
+        initialEditing?: boolean;
 };
 
 const InlineEditableTitle = forwardRef<{ focusEdit: () => void }, InlineEditableTitleProps>(
-    ({ value, onChange, onEditingChange }, ref) => {
-        const [editing, setEditing] = useState(false);
+    ({ value, onChange, onEditingChange, initialEditing }, ref) => {
+        const [editing, setEditing] = useState(initialEditing ?? false);
         const [text, setText] = useState(value);
         const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -99,6 +100,7 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus,
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
     const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [isCreatingName, setIsCreatingName] = useState(false);
 
     const isEditorView = pathname === '/editor' || pathname.startsWith('/editor/');
     const initial = user?.username?.trim().charAt(0).toUpperCase() || '?';
@@ -148,30 +150,49 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus,
                             <div className="navbar-diagram-title">
                                 {onDiagramTitleChange ? (
                                     <div className="navbar-diagram-title-inner">
-                                        <InlineEditableTitle
-                                            ref={titleRef}
-                                            value={diagramTitle ?? ''}
-                                            onChange={onDiagramTitleChange}
-                                            onEditingChange={setIsEditingTitle}
-                                        />
-                                        {!isEditingTitle && (
-                                            <MuiIconButton
-                                                size="small"
-                                                aria-label="Editar nombre"
-                                                className="navbar-diagram-edit-button"
-                                                onClick={() => titleRef.current?.focusEdit()}
+                                        {diagramTitle == null && !isCreatingName ? (
+                                            <button
+                                                type="button"
+                                                className="navbar-create-name-btn"
+                                                onClick={() => setIsCreatingName(true)}
                                             >
-                                                <PencilLine size={16} strokeWidth={2} />
-                                            </MuiIconButton>
+                                                Crear nombre
+                                            </button>
+                                        ) : (
+                                            <>
+                                                <InlineEditableTitle
+                                                    ref={titleRef}
+                                                    value={diagramTitle ?? ''}
+                                                    initialEditing={diagramTitle == null}
+                                                    onChange={(next) => {
+                                                        setIsCreatingName(false);
+                                                        onDiagramTitleChange(next);
+                                                    }}
+                                                    onEditingChange={(editing) => {
+                                                        setIsEditingTitle(editing);
+                                                        if (!editing && diagramTitle == null) setIsCreatingName(false);
+                                                    }}
+                                                />
+                                                {!isEditingTitle && diagramTitle != null && (
+                                                    <MuiIconButton
+                                                        size="small"
+                                                        aria-label="Editar nombre"
+                                                        className="navbar-diagram-edit-button"
+                                                        onClick={() => titleRef.current?.focusEdit()}
+                                                    >
+                                                        <PencilLine size={16} strokeWidth={2} />
+                                                    </MuiIconButton>
+                                                )}
+                                                {diagramTitle != null && (
+                                                    <span className={`navbar-save-status navbar-save-status--${saveStatus ?? 'idle'}`} title={saveStatus === 'saving' ? 'Guardando...' : 'Guardado'}>
+                                                        {saveStatus === 'saving'
+                                                            ? <Loader2 size={16} className="navbar-save-spinner" />
+                                                            : <CloudCheck size={16} />
+                                                        }
+                                                    </span>
+                                                )}
+                                            </>
                                         )}
-                                    {diagramTitle != null && (
-                                        <span className={`navbar-save-status navbar-save-status--${saveStatus ?? 'idle'}`} title={saveStatus === 'saving' ? 'Guardando...' : 'Guardado'}>
-                                            {saveStatus === 'saving'
-                                                ? <Loader2 size={16} className="navbar-save-spinner" />
-                                                : <CloudCheck size={16} />
-                                            }
-                                        </span>
-                                    )}
                                     </div>
                                 ) : (
                                     <span>{diagramTitle ?? ''}</span>

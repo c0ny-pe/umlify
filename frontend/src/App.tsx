@@ -591,7 +591,8 @@ function EditorScreen({
 }
 function AppContent() {
   const ctx: GlobalContext = useGlobalContext();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
   const [diagramTitle, setDiagramTitle] = useState<string | null>(null);
   const [diagramIdState, setDiagramIdState] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -954,14 +955,22 @@ function AppContent() {
   }, [ctx]);
 
   return (
-    <BrowserRouter>
+    <>
       <NavBar editorActions={editorActions} diagramTitle={diagramTitle} saveStatus={saveStatus} onAutoLayout={handleAutoLayout} onDiagramTitleChange={async (nextTitle: string) => {
-        // Update title optimistically and trigger server update with current content
         setDiagramTitle(nextTitle);
-        if (!diagramIdState) return;
+        if (!diagramIdState) {
+          try {
+            const { data } = await api.post('/diagrams', { user_id: user?.id, name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
+            setDiagramIdState(data.id);
+            navigate(`/editor/${data.id}`, { replace: true });
+          } catch {
+            ctx.setToast({ message: 'No se pudo crear el diagrama.', severity: 'error' });
+          }
+          return;
+        }
         try {
           await api.put(`/diagrams/${diagramIdState}`, { name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
-        } catch (err) {
+        } catch {
           ctx.setToast({ message: 'No se pudo guardar el nombre del diagrama.', severity: 'error' });
         }
       }} />
@@ -980,7 +989,7 @@ function AppContent() {
         <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />} />
         <Route path="/register" element={<Navigate to="/signup" replace />} />
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }
 
@@ -988,7 +997,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
   );
