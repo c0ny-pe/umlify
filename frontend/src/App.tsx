@@ -106,6 +106,7 @@ type EditorScreenProps = {
   setDiagramId?: (id: string | null) => void;
   diagramTitle?: string | null;
   setSaveStatus?: (s: SaveStatus) => void;
+  getNodeEditMode: (nodeId: number) => boolean;
 };
 
 function EditorScreen({
@@ -119,6 +120,7 @@ function EditorScreen({
   setDiagramId,
   diagramTitle,
   setSaveStatus,
+  getNodeEditMode,
 }: EditorScreenProps) {
   const { diagramId } = useParams();
   const navigate = useNavigate();
@@ -548,7 +550,10 @@ function EditorScreen({
           )}
 
           <ReactFlow
-            nodes={ctx.nodes.map((n) => n.getNode())}
+            nodes={ctx.nodes.map((n) => {
+              const rfNode = n.getNode();
+              return getNodeEditMode(n.id) ? { ...rfNode, zIndex: 1000 } : rfNode;
+            })}
             edges={ctx.edges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
@@ -980,11 +985,11 @@ function AppContent() {
         <Route path="/" element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
         <Route
           path="/editor"
-            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
         />
         <Route
             path="/editor/:diagramId"
-            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
         />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/signup" element={isAuthenticated ? <Navigate to="/" replace /> : <SignUp />} />

@@ -52,3 +52,7 @@
   padding-left: 8px !important;
   padding-right: 8px !important;
 }
+
+.react-flow__node:has(.Mui-expanded) {
+  z-index: 1000 !important;
+}
