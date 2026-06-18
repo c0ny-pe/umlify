@@ -303,18 +303,6 @@ html.dark .scala-export-dialog-content .MuiInputBase-input {
   animation: navbar-spin 0.9s linear infinite;
 }
 
-.navbar-save-check {
-  position: absolute;
-  bottom: -1px;
-  right: -3px;
-  background: var(--bg-color, white);
-  border-radius: 50%;
-  line-height: 1;
-}
-
-html.dark .navbar-save-check {
-  background: var(--bg-color, #1a1f21);
-}
 
 .navbar-export-trigger {
   appearance: none;

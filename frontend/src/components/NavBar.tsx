@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { IconButton as MuiIconButton, Switch } from '@mui/material';
 import { forwardRef, useImperativeHandle } from 'react';
 import { Menu, Divider, IconButton } from '@mui/material';
-import { Check, Cloud, FolderOpen, Loader2, LogOut, Moon, PencilLine, Settings2, Sun, Waypoints, X } from 'lucide-react';
+import { Check, CloudCheck, FolderOpen, Loader2, LogOut, Moon, PencilLine, Settings2, Sun, Waypoints, X } from 'lucide-react';
 import './styles/NavBar.css';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
@@ -165,12 +165,11 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus,
                                             </MuiIconButton>
                                         )}
                                     {diagramTitle != null && (
-                                        <span className={`navbar-save-status navbar-save-status--${saveStatus ?? 'idle'}`} title={saveStatus === 'saving' ? 'Guardando...' : saveStatus === 'saved' ? 'Guardado' : 'Guardado'}>
+                                        <span className={`navbar-save-status navbar-save-status--${saveStatus ?? 'idle'}`} title={saveStatus === 'saving' ? 'Guardando...' : 'Guardado'}>
                                             {saveStatus === 'saving'
-                                                ? <Loader2 size={14} className="navbar-save-spinner" />
-                                                : <Cloud size={14} />
+                                                ? <Loader2 size={16} className="navbar-save-spinner" />
+                                                : <CloudCheck size={16} />
                                             }
-                                            {saveStatus !== 'saving' && <Check size={10} className="navbar-save-check" />}
                                         </span>
                                     )}
                                     </div>
