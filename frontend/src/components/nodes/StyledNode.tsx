@@ -194,7 +194,7 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
         {createMultipleHandles(Position.Left, LEFT_RIGHT_HANDLES)}
         {createMultipleHandles(Position.Right, LEFT_RIGHT_HANDLES)}
 
-        <div className="box-container">
+        <div className={`box-container ${node.type ?? ""}`}>
           <NodeHeader
             {...commonSectionProps}
             node={node}

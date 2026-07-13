@@ -9,7 +9,8 @@ export const helmetConfig = helmet({
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
+      // 'wasm-unsafe-eval' lets shiki compile its WebAssembly highlighter.
+      scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
       imgSrc: ["'self'", 'data:', 'https:'],
     },
   },

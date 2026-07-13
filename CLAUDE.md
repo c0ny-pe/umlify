@@ -1,0 +1,81 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Overview
+
+UMLify is a web tool for creating UML class diagrams and generating Scala source code from them. Monorepo with two independent npm packages: `backend/` (Express + TypeScript + PostgreSQL) and `frontend/` (React + Vite + TypeScript). The UI is documented in Spanish; match the existing language of comments and user-facing strings in the file you are editing.
+
+## Commands
+
+From the repo root, the `Makefile` orchestrates everything:
+
+- `make setup` — install backend and frontend deps
+- `make start` — start Postgres (docker), backend, and frontend together; logs go to `backend.log` / `frontend.log`, PIDs to `.backend.pid` / `.frontend.pid`
+- `make stop` — kill dev processes and `docker compose down`
+- `make logs` — tail both log files
+
+The Makefile expects Postgres on `localhost:5434` and reads `backend/.env` (`PGUSER`, `PGPASSWORD`, `PGDATABASE`); `PGPASSWORD` is required.
+
+Backend (`cd backend`):
+- `npm run dev` — ts-node-dev on port 3001
+- `npm run build` / `npm start` — compile to `dist/` then run node
+- `npm test` — Jest (ts-jest). Run one file: `npm test -- generator.test.ts`. Run by name: `npm test -- -t "trait"`
+- `npm run migrate:up` / `npm run migrate:down` — node-pg-migrate against `DATABASE_URL`
+- `npm run build:ui` — build the frontend and copy its `dist/` into the backend (the backend serves `dist/` as static files in production)
+
+Frontend (`cd frontend`):
+- `npm run dev` — Vite dev server on 5173; proxies `/api` to `VITE_API_TARGET` (default `http://localhost:3001`)
+- `npm test` — Vitest (jsdom). One file: `npm test -- scalaFieldType.test.ts`
+- `npm run lint` — ESLint
+- `npm run build` — production build
+
+## Architecture
+
+### The diagram is the single source of truth
+
+A diagram serializes to one JSON object: `{ nodes, edges, viewport }`. This shape is the contract between frontend, backend, database, and the code generator. It is validated by a Zod schema (`diagramPayloadSchema`) that is **duplicated** in both `backend/src/schemas/diagramSchemas.ts` and `frontend/src/schemas/diagramSchemas.ts` — keep the two in sync when changing the diagram shape. The schema is the authority for the node/edge type unions (`classType`: `concreteClass` | `abstractClass` | `trait`; relation `type`: `aggregation` | `association` | `composition` | `dependency` | `implementation` | `inheritance`).
+
+Diagram content is stored in Postgres as a `JSONB` column, so the DB schema rarely changes when the diagram shape evolves.
+
+### Backend request flow
+
+`app.ts` wires middleware (helmet, cors, json, static `dist/`, request logger) then mounts three routers under `/api/users`, `/api/diagrams`, `/api/generator`. Every route is `requireAuth` (JWT bearer) except register/login. The consistent pattern per route is:
+
+`route → requireAuth → validateBody(zodSchema) → controller → model`
+
+- `middlewares/validate.ts` — `validateBody` / `validateParams` run a Zod schema and **replace** `req.body` / `req.params` with the parsed (coerced, trimmed) data; on failure returns 400 with formatted issues.
+- `schemas/requestSchemas.ts` — composes request schemas, importing `diagramPayloadSchema` for upload/update/generate bodies.
+- `models/*.ts` — thin functions running parameterized `pool.query` against Postgres; no ORM. `models/diagram.ts` generates UUIDs in app code (`randomUUID()`).
+- `utils/auth.ts` — `signAccessToken` / `verifyAccessToken`; `JWT_SECRET` defaults to `dev_secret`. The decoded payload `{ id, username }` is attached as `(req as any).user`.
+
+### Scala code generator (backend)
+
+The generator is a two-stage pipeline, kept separate from HTTP concerns. `POST /api/generator` → `controllers/generatorController.ts`:
+
+1. `generator/parser.ts` — `parseDiagram` strips layout fields (`x`, `y`, handles) to produce the intermediate `DiagramModel` (`{ classes, relations }`).
+2. `generator/generator.ts` — `generateScalaCode` builds a `relationsMap` (`createRelationsMap`) that interprets each edge into Scala semantics, then emits a `trait` / `class` / `abstract class` per node.
+
+Key generator rules to preserve when editing:
+- `inheritance` → `extends`; `implementation` on a trait target → `with`, on a class target → `extends`.
+- `association`/`dependency` → a `val x: X = ???` field; `aggregation`/`composition` → a `val xList: List[X] = List.empty` field. These synthesized fields are **suppressed if the user already declared a matching field manually** (`hasManualAssociationField` / `hasManualAggregationField`).
+- Concrete methods get ` = ???`; `abstract` methods emit signature only. Method params come from `domType` (positional `param1, param2, …`), return type from `codType` (defaults to `Unit`).
+
+Types in `types/generator.ts` are **derived from the Zod schema** via `z.infer` + `Omit`, so the generator's `Class`/`Relation` stay tied to the validated payload.
+
+### Frontend model layer (OOP + double dispatch)
+
+`frontend/src/model/` is a class hierarchy, not plain data. `UMLAbstractClass` is the base; `Trait`, `AbstractClass`, `ConcreteClass` are concrete subclasses. Edge type between two nodes is resolved by **double dispatch**: `source.getEdgeType(target)` calls `target.<sourceKind>EdgeType(source)`. To change which relations are legal between two node kinds, edit the `traitEdgeType` / `abstractClassEdgeType` / `concreteClassEdgeType` methods on each model class — not a central table.
+
+### Frontend app structure
+
+- `App.tsx` is large and holds the editor: `AppContent` owns global state and React Router routes; `EditorScreen` renders the `@xyflow/react` (React Flow) canvas. Routes: `/` (Library), `/editor` and `/editor/:diagramId`, `/login`, `/signup`, `/settings`. All editor/library routes redirect to `/login` when unauthenticated.
+- `services/api.ts` — axios instance for the `/api` backend.
+- State is shared via React context providers: `hooks/useGlobalContext`, `hooks/useAuth`, `hooks/useTheme`, and `components/editorCanvasContext` (canvas-specific: node edit mode, unique-name helpers).
+- `components/editorTypes.tsx` — registers the React Flow `nodeTypes` (all three class kinds render through one `StyledNode`) and `edgeTypes` (one component per relation under `components/edges/`).
+- `utils/diagramHydration.ts` — `hydrateDiagramData` validates a saved payload and rebuilds the model class instances + React Flow edges (the inverse of `buildDiagramPayload` in `App.tsx`). `utils/autoLayout.ts` runs Dagre auto-layout.
+- Export: `ExportScalaButton` posts the diagram to `/api/generator`; `ExportPNGButton` / `ExportSVGButton` use `html-to-image`; Scala syntax highlighting via `shiki`.
+
+## Database
+
+Postgres 16, managed with `node-pg-migrate` (migrations in `backend/migrations/`). Tables: `users` (id, username, password as bcrypt hash) and `diagrams` (UUID id, user_id FK, name, `content` JSONB, timestamps). `updated_at` is maintained by a PL/pgSQL trigger. `db.ts` overrides the pg type parser for OID 1114 (timestamp) to return raw strings.

@@ -13,3 +13,5 @@ class InvalidHandleException extends Error {
     this.name = 'InvalidHandleException';
   }
 }
+
+export default InvalidHandleException;

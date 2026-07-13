@@ -1,4 +1,5 @@
 import { Node, InternalNode, Position } from '@xyflow/react';
+import InvalidHandleException from '../../exceptions/InvalidHandleException';
 
 /**
  * Defines calculations to compute dynamically the handles to use in a node connection.

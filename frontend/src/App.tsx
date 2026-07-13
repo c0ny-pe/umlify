@@ -6,7 +6,7 @@ import {
   useRef,
 } from "react";
 import "./App.css";
-import api from "./services/api";
+import api, { API_BASE_URL } from "./services/api";
 import { AUTH_TOKEN_KEY } from "./utils/authSession";
 import {
   ReactFlow,
@@ -73,6 +73,33 @@ function buildDiagramPayload(nodes: GlobalContext["nodes"], edges: GlobalContext
       type: (e as any).type,
     })),
   };
+}
+
+// Signature of the saveable diagram content (nodes + edges, no viewport).
+// Used to skip autosaves that don't change anything meaningful, e.g. when
+// ReactFlow reports node measurements (dimensions) after a reload.
+function diagramContentSignature(
+  nodes: GlobalContext["nodes"],
+  edges: GlobalContext["edges"]
+): string {
+  return JSON.stringify({
+    nodes: nodes.map((n) => ({
+      id: String(n.id),
+      name: n.name,
+      classType: n.classType,
+      fields: n.fields.filter((f) => f.type && f.type.trim() !== ""),
+      methods: n.methods,
+      x: n.x,
+      y: n.y,
+    })),
+    edges: edges.map((e) => ({
+      source: e.source,
+      target: e.target,
+      sourceHandle: (e as any).sourceHandle,
+      targetHandle: (e as any).targetHandle,
+      type: (e as any).type,
+    })),
+  });
 }
 
 type Viewport = { x: number; y: number; zoom: number };
@@ -145,6 +172,8 @@ function EditorScreen({
   const viewportSaveTimeoutRef = useRef<number | null>(null);
   const diagramLoadedRef = useRef(false);
   const justLoadedRef = useRef(false);
+  // Content of the last successful save; autosave is skipped when unchanged.
+  const lastSavedSignatureRef = useRef<string | null>(null);
 
   const diagramTitleRef = useRef<string | null>(diagramTitle ?? null);
   diagramTitleRef.current = diagramTitle ?? null;
@@ -189,6 +218,7 @@ function EditorScreen({
         setNodes(hydrated.nodes);
         setEdges(hydrated.edges);
         setNextNodeId(hydrated.nextNodeId);
+        lastSavedSignatureRef.current = diagramContentSignature(hydrated.nodes, hydrated.edges);
         resetEditMode();
         setSavedViewport(hydrated.viewport ?? null);
         if (hydrated.viewport) setNeedsFitView(true);
@@ -265,6 +295,14 @@ function EditorScreen({
     hasPendingSaveRef.current = true;
     saveTimeoutRef.current = setTimeout(async () => {
       hasPendingSaveRef.current = false;
+
+      // Skip the save when nothing meaningful changed (e.g. node measurement
+      // after a reload). Position/field/method/edge edits change the signature.
+      const signature = diagramContentSignature(nodes, edges);
+      if (signature === lastSavedSignatureRef.current) {
+        return;
+      }
+
       setSaveStatus?.('saving');
       try {
         await api.put(`/diagrams/${diagramId}`, {
@@ -289,6 +327,7 @@ function EditorScreen({
             viewport: rfInstanceRef.current?.getViewport() ?? latestViewportRef.current,
           },
         });
+        lastSavedSignatureRef.current = signature;
         setSaveStatus?.('saved');
         setTimeout(() => setSaveStatus?.('idle'), 2000);
       } catch (err) {
@@ -320,7 +359,7 @@ function EditorScreen({
 
   // Flush pending save on page reload or tab close (keepalive survives unload)
   useEffect(() => {
-    const apiBase = String((import.meta as any).env?.VITE_API_TARGET || "http://localhost:3001").replace(/\/$/, "") + "/api";
+    const apiBase = API_BASE_URL;
 
     const handleBeforeUnload = () => {
       const hasPending = hasPendingSaveRef.current || viewportSaveTimeoutRef.current !== null;
@@ -703,11 +742,13 @@ function AppContent() {
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
-      // Ignore dimensions (ReactFlow internal measurement) and select (visual only) —
-      // neither lives in the UMLNode model, and both would create a new ctx.nodes
-      // reference that triggers autosave even when the user changed nothing.
+      // Apply position and dimensions changes. Dimensions (ReactFlow's node
+      // measurement) MUST be applied so nodes are marked initialized; dropping
+      // them makes dragging fail with ReactFlow error #015 (node disappears).
+      // Removal is handled by onNodesDelete; selection is visual only. Autosave
+      // is deduped by content signature, so applying dimensions is harmless.
       const relevant = changes.filter(
-        (c) => c.type !== "remove" && c.type !== "select" && c.type !== "dimensions"
+        (c) => c.type === "position" || c.type === "dimensions"
       );
       if (relevant.length > 0) {
         ctx.setNodes((nodes) => {
@@ -1060,11 +1101,16 @@ function AppContent() {
   );
 }
 
+// React Router basename: matches Vite's base path so client routes resolve under
+// the deploy subpath (e.g. "/umlify"). Falls back to "/" in local dev.
+const ROUTER_BASENAME =
+  String((import.meta as any).env?.BASE_URL ?? "/").replace(/\/+$/, "") || "/";
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={ROUTER_BASENAME}>
           <AppContent />
         </BrowserRouter>
       </AuthProvider>

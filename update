@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Deploy / redeploy UMLify on the cc3002 host.
+# Pulls latest, installs deps, runs migrations, builds backend + frontend, restarts pm2.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+git pull
+
+# Backend: deps, DB migrations, compile TypeScript -> backend/dist
+cd backend
+npm install
+set -a; [ -f .env ] && . ./.env; set +a   # export DATABASE_URL for node-pg-migrate
+npm run migrate:up
+npm run build
+cd ..
+
+# Frontend: deps, production build served under /umlify
+cd frontend
+npm install
+VITE_BASE_PATH=/umlify/ npm run build
+cd ..
+
+pm2 restart umlify
