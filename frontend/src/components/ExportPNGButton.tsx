@@ -56,11 +56,7 @@ const ExportPNGButton = ({ nodes, rfInstance }: { nodes: Node[]; rfInstance?: Re
     const viewportEl = document.querySelector('.react-flow__viewport') as HTMLElement;
     if (!viewportEl) return;
 
-    const backgroundColor = getComputedStyle(document.documentElement)
-      .getPropertyValue('--surface').trim() || 'white';
-
     toPng(viewportEl, {
-      backgroundColor,
       width: imageWidth,
       height: imageHeight,
       style: {
