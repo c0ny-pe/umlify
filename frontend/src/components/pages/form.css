@@ -139,13 +139,6 @@ label {
   filter: brightness(0.98);
 }
 
-.auth-hint {
-  margin: 0.35rem 0 0;
-  color: #1d2a35;
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
 .auth-switch-button {
   margin: 0.5rem auto 0;
   display: block;
@@ -250,10 +243,6 @@ html.dark .auth-card label {
   color: rgba(240, 243, 246, 0.82);
 }
 
-html.dark .auth-hint {
-  color: rgba(240, 243, 246, 0.55);
-}
-
 html.dark .auth-switch-button {
   color: rgba(240, 243, 246, 0.6);
 }
@@ -341,10 +330,6 @@ html.dark .auth-theme-toggle:hover {
     min-width: 7.2rem;
     padding: 0.62rem 1.1rem;
     font-size: 1.28rem;
-  }
-
-  .auth-hint {
-    font-size: 1rem;
   }
 
   .auth-switch-button {

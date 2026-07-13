@@ -75,7 +75,6 @@ const Login = () => {
                 <button className="auth-submit" type="submit">
                   Entrar
                 </button>
-                <p className="auth-hint">¿Olvidaste tu contraseña?</p>
               </div>
 
               <button
