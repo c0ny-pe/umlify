@@ -10,10 +10,21 @@ const MARGIN = 48;
  * @param {string} dataUrl The data URL of the file to download.
  */
 const downloadSvg = (dataUrl: string) => {
+  const commaIndex = dataUrl.indexOf(",");
+  const svgXml = decodeURIComponent(dataUrl.slice(commaIndex + 1));
+  const declaredSvgXml = svgXml.startsWith("<?xml")
+    ? svgXml
+    : `<?xml version="1.0" encoding="UTF-8"?>\n${svgXml}`;
+
+  const blob = new Blob([declaredSvgXml], { type: "image/svg+xml;charset=utf-8" });
+  const blobUrl = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
   a.setAttribute("download", "uml_diagram.svg");
-  a.setAttribute("href", dataUrl);
+  a.setAttribute("href", blobUrl);
   a.click();
+
+  URL.revokeObjectURL(blobUrl);
 };
 
 /**
