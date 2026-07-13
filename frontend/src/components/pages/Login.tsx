@@ -2,7 +2,10 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import "./form.css";
 import { useAuth } from "../../hooks/useAuth";
+import { useTheme } from "../../hooks/useTheme";
 import DarkModeToggle from "../DarkModeToggle";
+import authDiagram from "../../assets/auth-diagram.svg";
+import authDiagramDark from "../../assets/auth-diagram-dark.svg";
 
 const Login = () => {
   const [username, setUsername] = useState("");
@@ -11,6 +14,7 @@ const Login = () => {
 
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { isDark } = useTheme();
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -94,8 +98,12 @@ const Login = () => {
             <br />
             nunca ha sido más fácil
           </h2>
-          <div className="auth-diagram-placeholder">
-            Espacio para diagrama de referencia
+          <div className="auth-diagram-frame">
+            <img
+              className="auth-diagram-preview"
+              src={isDark ? authDiagramDark : authDiagram}
+              alt="Diagrama UML de ejemplo creado con UMLify"
+            />
           </div>
         </aside>
       </div>

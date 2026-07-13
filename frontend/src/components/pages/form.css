@@ -169,17 +169,21 @@ label {
   text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.65);
 }
 
-.auth-diagram-placeholder {
+.auth-diagram-frame {
   margin: 2rem auto 0;
-  width: min(100%, 420px);
-  aspect-ratio: 0.82;
-  border: 2px dashed rgba(51, 51, 51, 0.35);
-  color: rgba(33, 33, 33, 0.72);
-  display: grid;
-  place-items: center;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.26);
+  width: min(100%, 600px);
+  border-radius: 12px;
+  border: 1px solid rgba(51, 51, 51, 0.2);
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: var(--elev-shadow);
   padding: 1rem;
+  box-sizing: border-box;
+}
+
+.auth-diagram-preview {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .auth-theme-toggle {
@@ -252,9 +256,8 @@ html.dark .auth-hero-title {
   text-shadow: none;
 }
 
-html.dark .auth-diagram-placeholder {
+html.dark .auth-diagram-frame {
   border-color: rgba(240, 243, 246, 0.15);
-  color: rgba(240, 243, 246, 0.38);
   background: rgba(255, 255, 255, 0.03);
 }
 
