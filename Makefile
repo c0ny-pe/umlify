@@ -38,7 +38,7 @@ start-backend:
 
 # Start frontend in background with VITE_API_TARGET pointing to backend
 start-frontend:
-	@echo "Starting frontend (vite) pointing to http://localhost:3001..."
+	@echo "Starting frontend (vite) on http://localhost:5173, using backend API at http://localhost:3001..."
 	VITE_API_TARGET=http://localhost:3001 npm --prefix frontend run dev > frontend.log 2>&1 & echo $$! > .frontend.pid
 	@echo "Frontend PID: $$(cat .frontend.pid)"
 
