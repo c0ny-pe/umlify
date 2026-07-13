@@ -12,6 +12,7 @@ import {
   ReactFlow,
   Background,
   Controls,
+  Panel,
   useReactFlow,
   type Edge,
   type OnNodesChange,
@@ -27,6 +28,7 @@ import {
   OnNodesDelete,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { MousePointerClick, HelpCircle } from "lucide-react";
 
 import { BrowserRouter, Navigate, Route, Routes, useParams, useNavigate } from "react-router-dom";
 import ContextMenu from "./styles/menu";
@@ -129,6 +131,7 @@ function EditorScreen({
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [needsFitView, setNeedsFitView] = useState(false);
   const [savedViewport, setSavedViewport] = useState<Viewport | null>(null);
+  const [showCanvasHint, setShowCanvasHint] = useState(true);
   const {
     setNodes,
     setEdges,
@@ -581,6 +584,31 @@ function EditorScreen({
           >
             <Background />
             <Controls />
+            <Panel position="bottom-right">
+              {showCanvasHint ? (
+                <div className="canvas-hint">
+                  <MousePointerClick size={15} strokeWidth={2} />
+                  <span>Haz click derecho para agregar un elemento</span>
+                  <button
+                    type="button"
+                    className="canvas-hint-toggle"
+                    aria-label="Ocultar ayuda"
+                    onClick={() => setShowCanvasHint(false)}
+                  >
+                    <HelpCircle size={15} strokeWidth={2} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="canvas-hint-toggle canvas-hint-toggle-standalone"
+                  aria-label="Mostrar ayuda"
+                  onClick={() => setShowCanvasHint(true)}
+                >
+                  <HelpCircle size={16} strokeWidth={2} />
+                </button>
+              )}
+            </Panel>
             <FitViewOnLoad active={needsFitView} onDone={() => setNeedsFitView(false)} savedViewport={savedViewport} />
           </ReactFlow>
           <ToastAlert
@@ -812,7 +840,7 @@ function AppContent() {
           const fieldExists = hasManualAssociationField(sourceNode, targetName);
           if (!fieldExists) {
             ctx.setToast({
-              message: `Se generará automáticamente: val ${targetName.toLowerCase()}: ${targetName} = ???`,
+              message: `Se generará automáticamente en el código a exportar: val ${targetName.toLowerCase()}: ${targetName} = ???`,
               severity: "warning",
             });
           }
@@ -845,7 +873,7 @@ function AppContent() {
           const aggFieldExists = hasManualAggregationField(sourceNode, aggTargetName);
           if (!aggFieldExists) {
             ctx.setToast({
-              message: `Se generará automáticamente: val ${aggTargetName.toLowerCase()}List: List[${aggTargetName}] = List.empty`,
+              message: `Se generará automáticamente en el código a exportar: val ${aggTargetName.toLowerCase()}List: List[${aggTargetName}] = List.empty`,
               severity: "warning",
             });
           }
