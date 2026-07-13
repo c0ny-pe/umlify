@@ -323,6 +323,49 @@ html.dark .scala-export-dialog-content .MuiInputBase-input {
 }
 
 
+.navbar-back-btn {
+  appearance: none;
+  border: 1.5px solid var(--card-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.navbar-back-btn:hover {
+  background: var(--muted-bg);
+}
+
+.navbar-save-anonymous-btn {
+  appearance: none;
+  border: 1.5px solid var(--brand);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--brand-600);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+}
+
+.navbar-save-anonymous-btn:hover {
+  background: var(--brand);
+  color: #fff;
+}
+
 .navbar-export-trigger {
   appearance: none;
   border: 0;

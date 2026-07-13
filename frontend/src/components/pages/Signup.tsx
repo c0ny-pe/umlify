@@ -104,6 +104,17 @@ const SignUp = () => {
                             </div>
 
                             <button className="auth-switch-button" type="button" onClick={() => navigate("/login")}>Ya tengo cuenta</button>
+
+                            <div className="auth-guest-divider">
+                                <span>o</span>
+                            </div>
+                            <button
+                                className="auth-guest-link"
+                                type="button"
+                                onClick={() => navigate("/editor")}
+                            >
+                                Continuar sin cuenta
+                            </button>
                         </div>
                     </form>
                 </div>

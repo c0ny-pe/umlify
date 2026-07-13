@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { IconButton as MuiIconButton, Switch } from '@mui/material';
 import { forwardRef, useImperativeHandle } from 'react';
 import { Menu, Divider, IconButton } from '@mui/material';
-import { Check, CloudCheck, FolderOpen, Loader2, LogOut, Moon, PencilLine, Settings2, Sun, Waypoints, X } from 'lucide-react';
+import { ArrowLeft, Check, CloudCheck, FolderOpen, Loader2, LogOut, Moon, PencilLine, Save, Settings2, Sun, Waypoints, X } from 'lucide-react';
 import './styles/NavBar.css';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
@@ -89,9 +89,10 @@ type NavBarProps = {
     diagramId?: string | null;
     saveStatus?: SaveStatus;
     onAutoLayout?: () => void;
+    onSaveAnonymous?: () => void;
 };
 
-const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus, onAutoLayout }: NavBarProps) => {
+const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus, onAutoLayout, onSaveAnonymous }: NavBarProps) => {
     const { user, isAuthenticated, logout } = useAuth();
     const { isDark, toggle: toggleTheme } = useTheme();
     const { pathname } = useLocation();
@@ -315,6 +316,124 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus,
                             />
                         </div>
                     </Menu>
+                </div>
+            </nav>
+        );
+    }
+
+    if (isEditorView) {
+        return (
+            <nav className="navbar navbar-authenticated">
+                <div className="navbar-left">
+                    <Link to="/login" className="brand-link-authenticated">
+                        UMLify
+                    </Link>
+                    <div className="navbar-left-divider" />
+                    <div className="navbar-diagram-title">
+                        {onDiagramTitleChange ? (
+                            <div className="navbar-diagram-title-inner">
+                                {diagramTitle == null && !isCreatingName ? (
+                                    <button
+                                        type="button"
+                                        className="navbar-create-name-btn"
+                                        onClick={() => setIsCreatingName(true)}
+                                    >
+                                        Crear nombre
+                                    </button>
+                                ) : (
+                                    <>
+                                        <InlineEditableTitle
+                                            ref={titleRef}
+                                            value={diagramTitle ?? ''}
+                                            initialEditing={diagramTitle == null}
+                                            onChange={(next) => {
+                                                setIsCreatingName(false);
+                                                onDiagramTitleChange(next);
+                                            }}
+                                            onEditingChange={(editing) => {
+                                                setIsEditingTitle(editing);
+                                                if (!editing && diagramTitle == null) setIsCreatingName(false);
+                                            }}
+                                        />
+                                        {!isEditingTitle && diagramTitle != null && (
+                                            <MuiIconButton
+                                                size="small"
+                                                aria-label="Editar nombre"
+                                                className="navbar-diagram-edit-button"
+                                                onClick={() => titleRef.current?.focusEdit()}
+                                            >
+                                                <PencilLine size={16} strokeWidth={2} />
+                                            </MuiIconButton>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <span>{diagramTitle ?? ''}</span>
+                        )}
+                    </div>
+                </div>
+
+                <div className="navbar-center">
+                    {onAutoLayout && (
+                        <button
+                            type="button"
+                            className="navbar-layout-trigger"
+                            onClick={onAutoLayout}
+                            title="Auto-organizar diagrama"
+                        >
+                            <Waypoints size={15} strokeWidth={2} />
+                            Auto-layout
+                        </button>
+                    )}
+                </div>
+
+                <div className="navbar-right">
+                    <button
+                        type="button"
+                        className="navbar-back-btn"
+                        onClick={() => navigate("/login")}
+                    >
+                        <ArrowLeft size={15} strokeWidth={2.2} />
+                        Volver
+                    </button>
+                    {editorActions && (
+                        <>
+                            <button
+                                type="button"
+                                className="navbar-export-trigger"
+                                onClick={handleOpenExportMenu}
+                            >
+                                Exportar
+                            </button>
+                            <Menu
+                                anchorEl={exportAnchorEl}
+                                open={exportMenuOpen}
+                                onClose={handleCloseExportMenu}
+                                keepMounted
+                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                                MenuListProps={{ sx: { p: 0 } }}
+                                PaperProps={{ className: 'navbar-export-menu-paper' }}
+                            >
+                                <div className="navbar-export-menu-header">Exportar como</div>
+                                <Divider className="navbar-export-menu-divider" />
+                                <div className="navbar-export-menu-actions" onClick={handleCloseExportMenu}>
+                                    {editorActions}
+                                </div>
+                            </Menu>
+                        </>
+                    )}
+                    {onSaveAnonymous && (
+                        <button
+                            type="button"
+                            className="navbar-save-anonymous-btn"
+                            onClick={onSaveAnonymous}
+                        >
+                            <Save size={15} strokeWidth={2.2} />
+                            Guardar
+                        </button>
+                    )}
                 </div>
             </nav>
         );

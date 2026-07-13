@@ -47,6 +47,7 @@ import ConcreteClass from "./model/ConcreteClass";
 import ExportPNGButton from "./components/ExportPNGButton";
 import ExportSVGButton from "./components/ExportSVGButton";
 import ExportScalaButton, { type DiagramPayload } from "./components/ExportScalaButton";
+import { SaveModal } from "./components/SaveModal";
 import ToastAlert from "./components/ToastAlert";
 import { hydrateDiagramData } from "./utils/diagramHydration";
 import { applyDagreLayout } from "./utils/autoLayout";
@@ -126,7 +127,7 @@ function EditorScreen({
 }: EditorScreenProps) {
   const { diagramId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [loadingDiagram, setLoadingDiagram] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [needsFitView, setNeedsFitView] = useState(false);
@@ -404,6 +405,7 @@ function EditorScreen({
 
                       // If there's no diagramId yet, create a new diagram on the server
                       if (!diagramId) {
+                        if (!isAuthenticated) return;
                         try {
                           const payload = {
                             nodes: allNodes.map((n) => ({
@@ -458,6 +460,7 @@ function EditorScreen({
                       ctx.setNodes(() => allNodes);
 
                       if (!diagramId) {
+                        if (!isAuthenticated) return;
                         try {
                           const payload = {
                             nodes: allNodes.map((n) => ({
@@ -512,6 +515,7 @@ function EditorScreen({
                       ctx.setNodes(() => allNodes);
 
                       if (!diagramId) {
+                        if (!isAuthenticated) return;
                         try {
                           const payload = {
                             nodes: allNodes.map((n) => ({
@@ -630,9 +634,28 @@ function AppContent() {
   const [diagramTitle, setDiagramTitle] = useState<string | null>(null);
   const [diagramIdState, setDiagramIdState] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [editModeByNodeId, setEditModeByNodeId] = useState<
     Record<number, boolean>
   >({});
+
+  const prevIsAuthRef = useRef(isAuthenticated);
+  useEffect(() => {
+    const wasAnonymous = !prevIsAuthRef.current;
+    prevIsAuthRef.current = isAuthenticated;
+    if (!wasAnonymous || !isAuthenticated || !user) return;
+    if (ctx.nodes.length === 0 && !diagramTitle) return;
+    api.post('/diagrams', {
+      user_id: user.id,
+      name: diagramTitle ?? 'Diagrama sin título',
+      content: buildDiagramPayload(ctx.nodes, ctx.edges),
+    }).then(({ data }) => {
+      setDiagramIdState(data.id);
+      navigate(`/editor/${data.id}`, { replace: true });
+    }).catch(() => {
+      ctx.setToast({ message: 'No se pudo guardar el diagrama.', severity: 'error' });
+    });
+  }, [isAuthenticated]);
   const getNodeEditMode = useCallback(
     (nodeId: number) => Boolean(editModeByNodeId[nodeId]),
     [editModeByNodeId]
@@ -991,33 +1014,42 @@ function AppContent() {
 
   return (
     <>
-      <NavBar editorActions={editorActions} diagramTitle={diagramTitle} saveStatus={saveStatus} onAutoLayout={handleAutoLayout} onDiagramTitleChange={async (nextTitle: string) => {
-        setDiagramTitle(nextTitle);
-        if (!diagramIdState) {
-          try {
-            const { data } = await api.post('/diagrams', { user_id: user?.id, name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
-            setDiagramIdState(data.id);
-            navigate(`/editor/${data.id}`, { replace: true });
-          } catch {
-            ctx.setToast({ message: 'No se pudo crear el diagrama.', severity: 'error' });
+      <NavBar
+        editorActions={editorActions}
+        diagramTitle={diagramTitle}
+        saveStatus={saveStatus}
+        onAutoLayout={handleAutoLayout}
+        onSaveAnonymous={!isAuthenticated ? () => setShowSaveModal(true) : undefined}
+        onDiagramTitleChange={async (nextTitle: string) => {
+          setDiagramTitle(nextTitle);
+          if (!diagramIdState) {
+            if (!isAuthenticated) return;
+            try {
+              const { data } = await api.post('/diagrams', { user_id: user?.id, name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
+              setDiagramIdState(data.id);
+              navigate(`/editor/${data.id}`, { replace: true });
+            } catch {
+              ctx.setToast({ message: 'No se pudo crear el diagrama.', severity: 'error' });
+            }
+            return;
           }
-          return;
-        }
-        try {
-          await api.put(`/diagrams/${diagramIdState}`, { name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
-        } catch {
-          ctx.setToast({ message: 'No se pudo guardar el nombre del diagrama.', severity: 'error' });
-        }
-      }} />
+          try {
+            await api.put(`/diagrams/${diagramIdState}`, { name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
+          } catch {
+            ctx.setToast({ message: 'No se pudo guardar el nombre del diagrama.', severity: 'error' });
+          }
+        }}
+      />
+      <SaveModal open={showSaveModal} onClose={() => setShowSaveModal(false)} />
       <Routes>
         <Route path="/" element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
         <Route
           path="/editor"
-            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+          element={<EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider>}
         />
         <Route
-            path="/editor/:diagramId"
-            element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+          path="/editor/:diagramId"
+          element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
         />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
         <Route path="/signup" element={isAuthenticated ? <Navigate to="/" replace /> : <SignUp />} />
