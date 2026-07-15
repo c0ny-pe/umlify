@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction, useState, useRef, useEffect, useMemo } from "react";
 import { createTheme, ThemeProvider } from "@mui/material";
-import { Edge, Handle, NodeProps, Position } from "@xyflow/react";
+import { Edge, Handle, NodeProps, Position, useStore } from "@xyflow/react";
 import UMLNode, { CustomNode, Visibility } from "../../model/UMLNode";
 
 import NodeFields from "./NodeFields";
@@ -43,12 +43,12 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
     onEmptyName,
   } = props;
   const { data } = node;
+  const zoom = useStore((s) => s.transform[2]);
   /** Defines the handles for each side of the node */
   const LEFT_RIGHT_HANDLES = 3;
-  const DEFAULT_HANDLE_STYLE = {
-    width: 10,
-    height: 10,
-  };
+  /** Fixed visual size in screen pixels regardless of zoom */
+  const HANDLE_PX = 14;
+  const handleSize = HANDLE_PX / (zoom || 1);
 
   // Allows forcing rerenders in this component
   const [_, setLastChange] = useState<Date | null>(null);
@@ -139,7 +139,8 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
      * @returns {React.CSSProperties} The style of the handle.
      */
     const defineStyle = (id: number): React.CSSProperties => ({
-      ...DEFAULT_HANDLE_STYLE,
+      width: handleSize,
+      height: handleSize,
       visibility: mouseHover ? "visible" : "hidden",
       top:
         position === Position.Left || position === Position.Right

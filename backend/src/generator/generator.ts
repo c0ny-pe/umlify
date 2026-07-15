@@ -70,8 +70,8 @@ function createRelationsMap(classes: Class[], relations: Relation[]) {
                 sourceRel.associations.push(targetClass.name);
                 break;
             case "aggregation":
-            case "composition":
                 sourceRel.aggregations.push(targetClass.name);
+                break;
         }
     })
 
@@ -89,9 +89,7 @@ function hasManualAssociationField(cls: Class, associationTargetName: string): b
 }
 
 function hasManualAggregationField(cls: Class, aggregationTargetName: string): boolean {
-    return cls.fields.some(
-        (field) => field.type.trim().toLowerCase() === `list[${aggregationTargetName}]`.toLowerCase()
-    );
+    return hasManualAssociationField(cls, aggregationTargetName);
 }
 
 function createTraitBody(cls: Class, rel: ClassRelations): string[] {
@@ -108,7 +106,7 @@ function createTraitBody(cls: Class, rel: ClassRelations): string[] {
     rel.aggregations.forEach((a) => {
         const fieldExists = hasManualAggregationField(cls, a);
         if (!fieldExists) {
-            body.push(`val ${a.toLowerCase()}List: List[${a}] = List.empty`);
+            body.push(`val ${a.toLowerCase()}: ${a} = ???`);
         }
     });
 
@@ -147,7 +145,7 @@ function createClassBody(cls: Class, rel: ClassRelations): string[] {
     rel.aggregations.forEach((a) => {
         const fieldExists = hasManualAggregationField(cls, a);
         if (!fieldExists) {
-            body.push(`val ${a.toLowerCase()}List: List[${a}] = List.empty`);
+            body.push(`val ${a.toLowerCase()}: ${a} = ???`);
         }
     });
 

@@ -4,10 +4,12 @@ const nonEmptyText = z.string().trim().min(1);
 
 export const visibilitySchema = z.enum(["public", "protected", "private"]);
 export const classTypeSchema = z.enum(["concreteClass", "abstractClass", "trait"]);
+// El curso solo expone asociación, herencia/implementación y agregación en el canvas.
+// Se conserva dependency en el contrato porque el backend y las miniaturas lo usan,
+// pero composition queda fuera de la interfaz pública del editor.
 export const relationTypeSchema = z.enum([
   "aggregation",
   "association",
-  "composition",
   "dependency",
   "implementation",
   "inheritance",

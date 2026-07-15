@@ -206,15 +206,7 @@ describe('generateScalaCode', () => {
         [cls({ id: '1', name: 'Wheel' }), cls({ id: '2', name: 'Car' })],
         [rel('2', '1', 'aggregation')],
       ));
-      expect(code).toContain('val wheelList: List[Wheel] = List.empty');
-    });
-
-    it('treats composition same as aggregation', () => {
-      const code = generateScalaCode(model(
-        [cls({ id: '1', name: 'Engine' }), cls({ id: '2', name: 'Car' })],
-        [rel('2', '1', 'composition')],
-      ));
-      expect(code).toContain('val engineList: List[Engine] = List.empty');
+      expect(code).toContain('val wheel: Wheel = ???');
     });
 
     it('treats dependency same as association', () => {
@@ -241,11 +233,11 @@ describe('generateScalaCode', () => {
       const code = generateScalaCode(model(
         [
           cls({ id: '1', name: 'Wheel' }),
-          cls({ id: '2', name: 'Car', fields: [field('wheels', 'List[Wheel]')] }),
+          cls({ id: '2', name: 'Car', fields: [field('wheel', 'Wheel')] }),
         ],
         [rel('2', '1', 'aggregation')],
       ));
-      const matches = (code.match(/List\[Wheel\]/g) || []).length;
+      const matches = (code.match(/val wheel: Wheel/g) || []).length;
       expect(matches).toBe(1);
     });
   });

@@ -31,7 +31,7 @@ export interface Edge {
   target: string;
   sourceHandle: string;
   targetHandle: string;
-  type: 'aggregation' | 'association' | 'composition' | 'dependency' | 'implementation' | 'inheritance';
+  type: 'aggregation' | 'association' | 'dependency' | 'implementation' | 'inheritance';
 }
 
 export interface DiagramContent {

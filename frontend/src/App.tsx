@@ -929,7 +929,7 @@ function AppContent() {
             return;
           }
           break;
-        default:
+        case "3":
           edgeTypes.push({ type: "aggregation", id: 3 });
 
           // Advertencia si no existe field manual para esta relación
@@ -937,50 +937,14 @@ function AppContent() {
           const aggFieldExists = hasManualAggregationField(sourceNode, aggTargetName);
           if (!aggFieldExists) {
             ctx.setToast({
-              message: `Se generará automáticamente en el código a exportar: val ${aggTargetName.toLowerCase()}List: List[${aggTargetName}] = List.empty`,
+              message: `Se generará automáticamente en el código a exportar: val ${aggTargetName.toLowerCase()}: ${aggTargetName} = ???`,
               severity: "warning",
             });
           }
           break;
+        default:
+          return;
       }
-      /*
-      const targetName = targetNode.getName();
-      const sourceFields = sourceNode.getFields();
-      const sourceMethods = sourceNode.getMethods();
-
-      const fieldUses = sourceFields.some((field) => field.type == targetName);
-      const methodUses = sourceMethods.some((method) => {
-        return (
-          method.domType.includes(targetName) || method.codType == targetName
-        );
-      });
-
-      if (fieldUses || methodUses) {
-        edgeTypes.push({ type: "association", id: 1 });
-      }
-
-      try {
-        let inheritance = defineEdgeType(sourceNode, targetNode);
-        edgeTypes.push({ type: inheritance, id: 2 });
-      } catch {
-        return;
-      }
-
-      const fieldCompositions = sourceFields.some((field) => {
-        return isTypeComposed(field.type, targetName);
-      });
-
-      const methodCompositions = sourceMethods.some((method) => {
-        return (
-          isTypeComposed(method.codType as string, targetName) ||
-          method.domType.some((type) => isTypeComposed(type, targetName))
-        );
-      });
-
-      if (fieldCompositions || methodCompositions) {
-        edgeTypes.push({ type: "aggregation", id: 3 });
-      }
-      */
       if (edgeTypes.length === 0) return;
 
       let newEdges = ctx.edges;
