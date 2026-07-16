@@ -1,6 +1,5 @@
 export const SCALA_SIMPLE_TYPE_LIST = [
   "Any",
-  "AnyVal",
   "Double",
   "Float",
   "Long",
@@ -11,4 +10,6 @@ export const SCALA_SIMPLE_TYPE_LIST = [
   "Boolean",
   "Char",
   "String",
+  "BigInt",
+  "BigDecimal",
 ];

@@ -27,6 +27,11 @@ describe('SCALA_SIMPLE_TYPE_LIST', () => {
     expect(SCALA_SIMPLE_TYPE_LIST).toContain('Any');
   });
 
+  it('contains arbitrary-precision numeric types', () => {
+    expect(SCALA_SIMPLE_TYPE_LIST).toContain('BigInt');
+    expect(SCALA_SIMPLE_TYPE_LIST).toContain('BigDecimal');
+  });
+
   it('has no duplicate entries', () => {
     const unique = new Set(SCALA_SIMPLE_TYPE_LIST);
     expect(unique.size).toBe(SCALA_SIMPLE_TYPE_LIST.length);

@@ -58,7 +58,7 @@ The generator is a two-stage pipeline, kept separate from HTTP concerns. `POST /
 
 Key generator rules to preserve when editing:
 - `inheritance` → `extends`; `implementation` on a trait target → `with`, on a class target → `extends`.
-- `association`/`dependency` → a `val x: X = ???` field; `aggregation`/`composition` → a `val xList: List[X] = List.empty` field. These synthesized fields are **suppressed if the user already declared a matching field manually** (`hasManualAssociationField` / `hasManualAggregationField`).
+- `association`/`dependency`/`aggregation` → a `val x: X = ???` field. These synthesized fields are **suppressed if the user already declared a matching field manually** (`hasManualAssociationField` / `hasManualAggregationField`). `composition` has no case in `createRelationsMap`'s switch, so it is silently dropped and never emitted.
 - Concrete methods get ` = ???`; `abstract` methods emit signature only. Method params come from `domType` (positional `param1, param2, …`), return type from `codType` (defaults to `Unit`).
 
 Types in `types/generator.ts` are **derived from the Zod schema** via `z.infer` + `Omit`, so the generator's `Class`/`Relation` stay tied to the validated payload.
