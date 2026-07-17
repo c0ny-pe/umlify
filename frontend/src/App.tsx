@@ -827,6 +827,10 @@ function AppContent() {
     return hasManualFieldType(sourceNode, `List[${targetName}]`);
   }
 
+  function hasManualCompositionField(sourceNode: UMLNode, targetName: string): boolean {
+    return hasManualFieldType(sourceNode, targetName);
+  }
+
   const onConnectEnd: OnConnectEnd = (_event, connectionState) => {
     // We can only proceed when the connection is clearly between two nodes.
     if (
@@ -898,6 +902,20 @@ function AppContent() {
           if (!aggFieldExists) {
             ctx.setToast({
               message: `Se generará automáticamente en el código a exportar: val ${aggTargetName.toLowerCase()}: ${aggTargetName} = ???`,
+              severity: "warning",
+            });
+          }
+          break;
+        }
+        case "4": {
+          edgeTypes.push({ type: "composition", id: 4 });
+
+          // Advertencia si no existe field manual para esta relación
+          const compTargetName = targetNode.getName();
+          const compFieldExists = hasManualCompositionField(sourceNode, compTargetName);
+          if (!compFieldExists) {
+            ctx.setToast({
+              message: `Se generará automáticamente en el código a exportar: val ${compTargetName.toLowerCase()}: ${compTargetName} = ???`,
               severity: "warning",
             });
           }

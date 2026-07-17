@@ -77,7 +77,7 @@ describe('parseDiagram', () => {
   });
 
   it('handles all relation types', () => {
-    const types = ['aggregation', 'association', 'dependency', 'implementation', 'inheritance'] as const;
+    const types = ['aggregation', 'association', 'composition', 'dependency', 'implementation', 'inheritance'] as const;
     types.forEach((type) => {
       const result = parseDiagram({ nodes: [], edges: [makeEdge({ type })] });
       expect(result.relations[0].type).toBe(type);

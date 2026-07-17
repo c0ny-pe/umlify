@@ -20,4 +20,5 @@ export interface ClassRelations {
     withTraits: string[];
     associations: string[];
     aggregations: string[];
+    compositions: string[];
 }

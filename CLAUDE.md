@@ -34,20 +34,20 @@ Frontend (`cd frontend`):
 
 ### The diagram is the single source of truth
 
-A diagram serializes to one JSON object: `{ nodes, edges, viewport }`. This shape is the contract between frontend, backend, database, and the code generator. It is validated by a Zod schema (`diagramPayloadSchema`) that is **duplicated** in both `backend/src/schemas/diagramSchemas.ts` and `frontend/src/schemas/diagramSchemas.ts` — keep the two in sync when changing the diagram shape. The schema is the authority for the node/edge type unions (`classType`: `concreteClass` | `abstractClass` | `trait`; relation `type`: `aggregation` | `association` | `composition` | `dependency` | `implementation` | `inheritance`).
+A diagram serializes to one JSON object: `{ nodes, edges, viewport }`. This shape is the contract between frontend, backend, database, and the code generator. It is validated by a Zod schema (`diagramPayloadSchema`) that is **duplicated** in both `backend/src/schemas/diagramSchemas.ts` and `frontend/src/schemas/diagramSchemas.ts` — keep the two in sync when changing the diagram shape. The schema is the authority for the node/edge type unions (`classType`: `concreteClass` | `abstractClass` | `trait`; relation `type`: `aggregation` | `association` | `composition` | `dependency` | `implementation` | `inheritance`). The editor exposes four handles per node side, one per drawable relation (association, inheritance/implementation, aggregation, composition); `dependency` stays in the contract but has no dedicated handle.
 
 Diagram content is stored in Postgres as a `JSONB` column, so the DB schema rarely changes when the diagram shape evolves.
 
 ### Backend request flow
 
-`app.ts` wires middleware (helmet, cors, json, static `dist/`, request logger) then mounts three routers under `/api/users`, `/api/diagrams`, `/api/generator`. Every route is `requireAuth` (JWT bearer) except register/login. The consistent pattern per route is:
+`app.ts` wires middleware (helmet, cors, json, cookie-parser, static `dist/`, request logger) then mounts three routers under `/api/users`, `/api/diagrams`, `/api/generator`. Every route is `requireAuth` except register/login/logout. The consistent pattern per route is:
 
 `route → requireAuth → validateBody(zodSchema) → controller → model`
 
 - `middlewares/validate.ts` — `validateBody` / `validateParams` run a Zod schema and **replace** `req.body` / `req.params` with the parsed (coerced, trimmed) data; on failure returns 400 with formatted issues.
 - `schemas/requestSchemas.ts` — composes request schemas, importing `diagramPayloadSchema` for upload/update/generate bodies.
 - `models/*.ts` — thin functions running parameterized `pool.query` against Postgres; no ORM. `models/diagram.ts` generates UUIDs in app code (`randomUUID()`).
-- `utils/auth.ts` — `signAccessToken` / `verifyAccessToken`; `JWT_SECRET` defaults to `dev_secret`. The decoded payload `{ id, username }` is attached as `(req as any).user`.
+- `utils/auth.ts` — `signAccessToken` / `verifyAccessToken`; `JWT_SECRET` is set in `.env` (falls back to `dev_secret` if unset). `middlewares/auth.ts` reads the JWT from an `HttpOnly` cookie (not a bearer header), checks the `csrf` claim against the `X-CSRF-Token` request header, and attaches the decoded `id` as `req.userId` (typed via a `declare global` augmentation in that same file).
 
 ### Scala code generator (backend)
 
@@ -58,7 +58,7 @@ The generator is a two-stage pipeline, kept separate from HTTP concerns. `POST /
 
 Key generator rules to preserve when editing:
 - `inheritance` → `extends`; `implementation` on a trait target → `with`, on a class target → `extends`.
-- `association`/`dependency`/`aggregation` → a `val x: X = ???` field. These synthesized fields are **suppressed if the user already declared a matching field manually** (`hasManualAssociationField` / `hasManualAggregationField`). `composition` has no case in `createRelationsMap`'s switch, so it is silently dropped and never emitted.
+- `association`/`dependency`/`aggregation`/`composition` → a `val x: X = ???` field. These synthesized fields are **suppressed if the user already declared a matching field manually** (`hasManualAssociationField` / `hasManualAggregationField` / `hasManualCompositionField`).
 - Concrete methods get ` = ???`; `abstract` methods emit signature only. Method params come from `domType` (positional `param1, param2, …`), return type from `codType` (defaults to `Unit`).
 
 Types in `types/generator.ts` are **derived from the Zod schema** via `z.infer` + `Omit`, so the generator's `Class`/`Relation` stay tied to the validated payload.
