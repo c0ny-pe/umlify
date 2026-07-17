@@ -288,7 +288,7 @@ export default function Library() {
           <div className="library-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Eliminar diagrama</h3>
             <p className="library-modal-delete-text">
-              ¿Eliminar "<span className="library-modal-delete-name">{deleteDialog.diagram.name}</span>"? Esta acción no se puede deshacer.
+              ¿Eliminar &quot;<span className="library-modal-delete-name">{deleteDialog.diagram.name}</span>&quot;? Esta acción no se puede deshacer.
             </p>
             <div className="library-modal-actions">
               <button onClick={() => setDeleteDialog({ open: false })}>Cancelar</button>

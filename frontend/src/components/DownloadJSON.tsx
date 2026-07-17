@@ -3,7 +3,6 @@ import UMLNode, { ClassType, EdgeType, FieldType, MethodType } from "../model/UM
 import { Edge } from "@xyflow/react";
 import { Download } from "@mui/icons-material";
 
-// TODO: See if these types already exist
 type ExportingNode = {
   id: string,
   name: string,
@@ -29,13 +28,13 @@ type DownloadJSONProps = {
 
 const DownloadJSON = ({ nodes, edges }: DownloadJSONProps): JSX.Element => {
   const handleDownload = (): void => {
-    let result: { nodes: ExportingNode[], edges: ExportingEdge[] } = {
+    const result: { nodes: ExportingNode[], edges: ExportingEdge[] } = {
       nodes: [],
       edges: []
     };
 
-    for (let node of nodes) {
-      let exportingNode: ExportingNode = {
+    for (const node of nodes) {
+      const exportingNode: ExportingNode = {
         id: String(node.id),
         name: node.name,
         classType: node.classType,
@@ -47,8 +46,8 @@ const DownloadJSON = ({ nodes, edges }: DownloadJSONProps): JSX.Element => {
       result.nodes.push(exportingNode);
     }
 
-    for (let edge of edges) {
-      let exportingEdge: ExportingEdge = {
+    for (const edge of edges) {
+      const exportingEdge: ExportingEdge = {
         source: edge.source,
         target: edge.target,
         sourceHandle: edge.sourceHandle as string,

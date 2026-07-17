@@ -39,8 +39,7 @@ const UploadJSON = ({ setNodes, setNextNodeId, setEdges }: UploadJSONProps): JSX
 
       try {
         hydrated = parseAndHydrateDiagram(JSON.parse(contents));
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "JSON inválido";
+      } catch {
         window.alert("El archivo JSON no tiene un formato válido.");
         target.value = "";
         return;

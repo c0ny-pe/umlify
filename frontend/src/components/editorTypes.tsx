@@ -1,4 +1,4 @@
-import type { EdgeProps, EdgeTypes, NodeProps, NodeTypes } from "@xyflow/react";
+import type { EdgeTypes, NodeProps, NodeTypes } from "@xyflow/react";
 import StyledNode from "./nodes/StyledNode";
 import AggregationEdge from "./edges/AggregationEdge";
 import AssociationEdge from "./edges/AssociationEdge";

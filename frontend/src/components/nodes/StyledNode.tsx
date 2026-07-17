@@ -115,7 +115,7 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
     numHandles: number
   ): JSX.Element[] => {
     let identifier: string;
-    let handles: JSX.Element[] = [];
+    const handles: JSX.Element[] = [];
 
     switch (position) {
       case Position.Left:
