@@ -1,63 +1,132 @@
-POST http://localhost:3001/api/users/register
+@baseUrl = http://localhost:3001/api
+
+### Register a new user
+### The JWT is set as an HttpOnly cookie (not returned in the body); the REST
+### Client extension keeps a cookie jar per file, so it's resent automatically
+### on the requests below.
+POST {{baseUrl}}/users/register
 Content-Type: application/json
 
 {
-    "username": "cony",
-    "password": "password123"
+    "username": "test-user",
+    "password": "password"
 }
 
 ###
-GET http://localhost:3001/api/users/1
+### Get a public user by id (no auth required)
+GET {{baseUrl}}/users/1
 
 ###
-POST http://localhost:3001/api/diagrams
+### Authentication flow
+# @name login
+POST {{baseUrl}}/users/login
 Content-Type: application/json
 
 {
-    "user_id": 1,
+    "username": "test-user",
+    "password": "password"
+}
+
+###
+### The login/register response also carries the CSRF token in this header;
+### capture it and send it back as X-CSRF-Token on every protected request.
+@csrfToken = {{login.response.headers.X-CSRF-Token}}
+
+### Restore session (used by the frontend on page load)
+GET {{baseUrl}}/users/me
+X-CSRF-Token: {{csrfToken}}
+
+###
+### Log out (clears the cookie)
+POST {{baseUrl}}/users/logout
+
+###
+### Create a diagram (must be authenticated)
+POST {{baseUrl}}/diagrams
+Content-Type: application/json
+X-CSRF-Token: {{csrfToken}}
+
+{
     "name": "Diagrama de Clases Memoria",
-    "content": { 
+    "content": {
         "nodes": [
             {
-                "id": "1", 
-                "name": "Usuario", 
-                "classType": "concreteClass", 
+                "id": "1",
+                "name": "Usuario",
+                "classType": "concreteClass",
                 "methods": [
-                    {"name": "getUsername", "returnType": "string"}
-                ], 
-                "fields": [
-                    {"name": "username", "fieldType": "string"}
+                    {
+                        "name": "getUsername",
+                        "domType": [],
+                        "codType": "String",
+                        "visibility": "public",
+                        "abstract": false
+                    }
                 ],
-                "x": 100, 
+                "fields": [
+                    {
+                        "name": "username",
+                        "type": "String",
+                        "visibility": "private"
+                    }
+                ],
+                "x": 100,
                 "y": 150
             },
             {
-                "id": "2", 
-                "name": "Diagrama", 
-                "classType": "concreteClass", 
-                "methods": [], 
+                "id": "2",
+                "name": "Diagrama",
+                "classType": "concreteClass",
+                "methods": [],
                 "fields": [],
-                "x": 400, 
+                "x": 400,
                 "y": 150
             }
-        ], 
+        ],
         "edges": [
             {
-                "source": "1", 
-                "target": "2", 
+                "source": "1",
+                "target": "2",
                 "type": "association",
                 "sourceHandle": "right",
                 "targetHandle": "left"
             }
-        ] 
+        ]
     }
 }
 
 ###
-GET http://localhost:3001/api/diagrams/1
+### List diagrams for authenticated user
+GET {{baseUrl}}/diagrams
+X-CSRF-Token: {{csrfToken}}
 
 ###
-POST http://localhost:3001/api/generator
+### Get specific diagram by id (must be owner)
+GET {{baseUrl}}/diagrams/{diagram_id}
+X-CSRF-Token: {{csrfToken}}
+
+###
+### Update diagram (must be owner)
+PUT {{baseUrl}}/diagrams/{diagram_id}
+Content-Type: application/json
+X-CSRF-Token: {{csrfToken}}
+
+{
+    "name": "Diagrama Actualizado",
+    "content": {
+        "nodes": [],
+        "edges": []
+    }
+}
+
+###
+### Delete diagram (must be owner)
+DELETE {{baseUrl}}/diagrams/{diagram_id}
+X-CSRF-Token: {{csrfToken}}
+
+###
+### Generate Scala code (no auth required)
+POST {{baseUrl}}/generator
 Content-Type: application/json
 
 {
@@ -85,7 +154,7 @@ Content-Type: application/json
             "fields": [{
                     "name": "width",
                     "type": "Double",
-                    "visibility": "public"
+                    "visibility": "private"
                 }],
             "x": 478,
             "y": 257
@@ -114,7 +183,7 @@ Content-Type: application/json
                 {
                     "name": "radius",
                     "type": "Double",
-                    "visibility": "public"
+                    "visibility": "protected"
                 }
             ],
             "x": 774.7468166067184,
@@ -129,7 +198,7 @@ Content-Type: application/json
                     "name": "area",
                     "domType": [],
                     "codType": "Double",
-                    "visibility": "public",
+                    "visibility": "private",
                     "abstract": false
                 },
                 {
@@ -170,11 +239,112 @@ Content-Type: application/json
             "sourceHandle": "left-handle-2",
             "targetHandle": "right-handle-2",
             "type": "implementation"
+        },
+        {
+            "source": "3",
+            "target": "2",
+            "sourceHandle": "left-handle-2",
+            "targetHandle": "right-handle-2",
+            "type": "implementation"
         }
     ]
 }
 
 ###
+POST {{baseUrl}}/generator
+Content-Type: application/json
+
+{
+    "nodes": [
+        {
+            "id": "1",
+            "name": "Usuario",
+            "classType": "concreteClass",
+            "methods": [
+                {
+                    "name": "nombreCompleto",
+                    "domType": [],
+                    "codType": "String",
+                    "visibility": "public",
+                    "abstract": false
+                }
+            ],
+            "fields": [
+                {
+                    "name": "nombre",
+                    "type": "String",
+                    "visibility": "private"
+                }
+            ],
+            "x": 120,
+            "y": 120
+        },
+        {
+            "id": "2",
+            "name": "Pedido",
+            "classType": "concreteClass",
+            "methods": [
+                {
+                    "name": "total",
+                    "domType": [],
+                    "codType": "Double",
+                    "visibility": "public",
+                    "abstract": false
+                }
+            ],
+            "fields": [
+                {
+                    "name": "usuario",
+                    "type": "Usuario",
+                    "visibility": "private"
+                },
+                {
+                    "name": "items",
+                    "type": "List[Item]",
+                    "visibility": "private"
+                }
+            ],
+            "x": 360,
+            "y": 120
+        },
+        {
+            "id": "3",
+            "name": "Item",
+            "classType": "concreteClass",
+            "methods": [],
+            "fields": [
+                {
+                    "name": "precio",
+                    "type": "Double",
+                    "visibility": "private"
+                }
+            ],
+            "x": 620,
+            "y": 120
+        }
+    ],
+    "edges": [
+        {
+            "source": "2",
+            "target": "1",
+            "sourceHandle": "right-handle-1",
+            "targetHandle": "left-handle-1",
+            "type": "association"
+        },
+        {
+            "source": "2",
+            "target": "3",
+            "sourceHandle": "right-handle-3",
+            "targetHandle": "left-handle-3",
+            "type": "aggregation"
+        }
+    ]
+}
+
+###
+POST {{baseUrl}}/generator
+Content-Type: application/json
+
 {
     "nodes": [
         {
@@ -195,7 +365,7 @@ Content-Type: application/json
                     "name": "methodName",
                     "domType": [],
                     "codType": "Int",
-                    "visibility": "public",
+                    "visibility": "private",
                     "abstract": true
                 }
             ],
