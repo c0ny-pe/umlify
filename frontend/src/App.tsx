@@ -154,7 +154,7 @@ function EditorScreen({
 }: EditorScreenProps) {
   const { diagramId } = useParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [loadingDiagram, setLoadingDiagram] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [needsFitView, setNeedsFitView] = useState(false);
@@ -467,7 +467,6 @@ function EditorScreen({
                           };
 
                           const { data } = await api.post("/diagrams", {
-                            user_id: user?.id,
                             name: "Diagrama sin título",
                             content: payload,
                           });
@@ -522,7 +521,6 @@ function EditorScreen({
                           };
 
                           const { data } = await api.post("/diagrams", {
-                            user_id: user?.id,
                             name: "Diagrama sin título",
                             content: payload,
                           });
@@ -577,7 +575,6 @@ function EditorScreen({
                           };
 
                           const { data } = await api.post("/diagrams", {
-                            user_id: user?.id,
                             name: "Diagrama sin título",
                             content: payload,
                           });
@@ -686,7 +683,6 @@ function AppContent() {
     if (!wasAnonymous || !isAuthenticated || !user) return;
     if (ctx.nodes.length === 0 && !diagramTitle) return;
     api.post('/diagrams', {
-      user_id: user.id,
       name: diagramTitle ?? 'Diagrama sin título',
       content: buildDiagramPayload(ctx.nodes, ctx.edges),
     }).then(({ data }) => {
@@ -1031,7 +1027,7 @@ function AppContent() {
           if (!diagramIdState) {
             if (!isAuthenticated) return;
             try {
-              const { data } = await api.post('/diagrams', { user_id: user?.id, name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
+              const { data } = await api.post('/diagrams', { name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
               setDiagramIdState(data.id);
               navigate(`/editor/${data.id}`, { replace: true });
             } catch {
