@@ -7,7 +7,7 @@ import {
 } from "react";
 import "./App.css";
 import api, { API_BASE_URL } from "./services/api";
-import { AUTH_TOKEN_KEY } from "./utils/authSession";
+import { getStoredCsrfToken } from "./utils/authSession";
 import {
   ReactFlow,
   Background,
@@ -368,12 +368,13 @@ function EditorScreen({
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       if (viewportSaveTimeoutRef.current) clearTimeout(viewportSaveTimeoutRef.current);
       viewportSaveTimeoutRef.current = null;
-      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      const csrfToken = getStoredCsrfToken();
       fetch(`${apiBase}/diagrams/${diagramIdRef.current}`, {
         method: "PUT",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         },
         body: JSON.stringify({
           name: diagramTitleRef.current ?? "Diagrama sin título",
@@ -668,7 +669,7 @@ function EditorScreen({
 }
 function AppContent() {
   const ctx: GlobalContext = useGlobalContext();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isInitializing, user } = useAuth();
   const navigate = useNavigate();
   const [diagramTitle, setDiagramTitle] = useState<string | null>(null);
   const [diagramIdState, setDiagramIdState] = useState<string | null>(null);
@@ -1047,18 +1048,18 @@ function AppContent() {
       />
       <SaveModal open={showSaveModal} onClose={() => setShowSaveModal(false)} />
       <Routes>
-        <Route path="/" element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
+        <Route path="/" element={isInitializing ? null : isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
         <Route
           path="/editor"
           element={<EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider>}
         />
         <Route
           path="/editor/:diagramId"
-          element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+          element={isInitializing ? null : isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
         />
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
-        <Route path="/signup" element={isAuthenticated ? <Navigate to="/" replace /> : <SignUp />} />
-        <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />} />
+        <Route path="/login" element={isInitializing ? null : isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+        <Route path="/signup" element={isInitializing ? null : isAuthenticated ? <Navigate to="/" replace /> : <SignUp />} />
+        <Route path="/settings" element={isInitializing ? null : isAuthenticated ? <Settings /> : <Navigate to="/login" replace />} />
         <Route path="/register" element={<Navigate to="/signup" replace />} />
       </Routes>
     </>

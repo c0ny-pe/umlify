@@ -3,14 +3,9 @@ import { createDiagram, getDiagramsByUserId, getDiagramById, updateDiagram, dele
 
 export async function uploadDiagram(req: Request, res: Response) {
   const { name, content } = req.body;
-  const user = (req as any).user;
-  if (!user) {
-    res.status(401).json({ error: 'usuario no autenticado' });
-    return;
-  }
 
   try {
-    const diagram = await createDiagram(Number(user.id), name, content);
+    const diagram = await createDiagram(req.userId!, name, content);
     res.status(201).json(diagram);
   } catch (err) {
     console.error(err);
@@ -19,14 +14,8 @@ export async function uploadDiagram(req: Request, res: Response) {
 }
 
 export async function listUserDiagrams(req: Request, res: Response) {
-  const user = (req as any).user;
-  if (!user) {
-    res.status(401).json({ error: 'usuario no autenticado' });
-    return;
-  }
-
   try {
-    const diagrams = await getDiagramsByUserId(Number(user.id));
+    const diagrams = await getDiagramsByUserId(req.userId!);
     res.json(diagrams);
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener los diagramas' });
@@ -35,11 +24,6 @@ export async function listUserDiagrams(req: Request, res: Response) {
 
 export async function getDiagram(req: Request, res: Response) {
   const id = req.params.id as string;
-  const user = (req as any).user;
-  if (!user) {
-    res.status(401).json({ error: 'usuario no autenticado' });
-    return;
-  }
 
   try {
     const diagram = await getDiagramById(id);
@@ -49,7 +33,7 @@ export async function getDiagram(req: Request, res: Response) {
     }
 
     // verify ownership
-    if (diagram.user_id !== Number(user.id)) {
+    if (diagram.user_id !== req.userId) {
       res.status(403).json({ error: 'No tienes permiso para acceder a este diagrama' });
       return;
     }
@@ -63,11 +47,6 @@ export async function getDiagram(req: Request, res: Response) {
 export async function updateDiagramHandler(req: Request, res: Response) {
   const id = req.params.id as string;
   const { name, content } = req.body;
-  const user = (req as any).user;
-  if (!user) {
-    res.status(401).json({ error: 'usuario no autenticado' });
-    return;
-  }
 
   try {
     const diagram = await getDiagramById(id);
@@ -77,7 +56,7 @@ export async function updateDiagramHandler(req: Request, res: Response) {
     }
 
     // verify ownership
-    if (diagram.user_id !== Number(user.id)) {
+    if (diagram.user_id !== req.userId) {
       res.status(403).json({ error: 'No tienes permiso para editar este diagrama' });
       return;
     }
@@ -92,11 +71,6 @@ export async function updateDiagramHandler(req: Request, res: Response) {
 
 export async function deleteDiagramHandler(req: Request, res: Response) {
   const id = req.params.id as string;
-  const user = (req as any).user;
-  if (!user) {
-    res.status(401).json({ error: 'usuario no autenticado' });
-    return;
-  }
 
   try {
     const diagram = await getDiagramById(id);
@@ -106,7 +80,7 @@ export async function deleteDiagramHandler(req: Request, res: Response) {
     }
 
     // verify ownership
-    if (diagram.user_id !== Number(user.id)) {
+    if (diagram.user_id !== req.userId) {
       res.status(403).json({ error: 'No tienes permiso para eliminar este diagrama' });
       return;
     }
