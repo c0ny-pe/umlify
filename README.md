@@ -33,31 +33,33 @@ El repositorio está organizado como un monorepo simplificado:
 
 ### Pasos para Ejecutar
 
+El `Makefile` de la raíz orquesta todo (dependencias, Postgres en Docker, backend y frontend).
+
 1.  **Clonar el repositorio:**
     ```bash
     git clone https://github.com/c0ny-pe/umlify.git
     cd umlify
     ```
 
-2.  **Levantar la Base de Datos (Docker):**
+2.  **Configurar credenciales del backend:**
     ```bash
-    docker-compose up -d
+    cp backend/.env.example backend/.env
+    $EDITOR backend/.env   # PGPASSWORD (y JWT_SECRET) con valores reales
     ```
 
-3.  **Configurar y Ejecutar el Backend:**
+3.  **Instalar dependencias:**
     ```bash
-    cd backend
-    npm install
-    npm run migrate:up  # Aplicar tablas iniciales
-    npm run dev         # Iniciar en http://localhost:3001
+    make setup   # npm install en backend/ y frontend/
     ```
 
-4.  **Configurar y Ejecutar el Frontend:**
+4.  **Levantar todo (Postgres + backend + frontend):**
     ```bash
-    cd ../frontend
-    npm install
-    npm run dev         # Iniciar en http://localhost:5173 (Vite)
+    make start   # docker compose (Postgres en :5434) + backend (:3001) + frontend (:5173)
+    make logs    # tail de backend.log / frontend.log
+    make stop    # apaga los procesos y docker compose
     ```
+
+    También se puede levantar cada servicio por separado con `make start-db`, `make start-backend` y `make start-frontend`. Para aplicar migraciones manualmente: `cd backend && npm run migrate:up`.
 
 ## 📊 Base de Datos
 
