@@ -45,6 +45,7 @@ function createRelationsMap(classes: Class[], relations: Relation[]) {
             withTraits: [],
             associations: [],
             aggregations: [],
+            compositions: [],
         })
     );
 
@@ -72,6 +73,9 @@ function createRelationsMap(classes: Class[], relations: Relation[]) {
             case "aggregation":
                 sourceRel.aggregations.push(targetClass.name);
                 break;
+            case "composition":
+                sourceRel.compositions.push(targetClass.name);
+                break;
         }
     })
 
@@ -92,6 +96,10 @@ function hasManualAggregationField(cls: Class, aggregationTargetName: string): b
     return hasManualAssociationField(cls, aggregationTargetName);
 }
 
+function hasManualCompositionField(cls: Class, compositionTargetName: string): boolean {
+    return hasManualAssociationField(cls, compositionTargetName);
+}
+
 function createTraitBody(cls: Class, rel: ClassRelations): string[] {
     const body: string[] = [];
 
@@ -110,8 +118,15 @@ function createTraitBody(cls: Class, rel: ClassRelations): string[] {
         }
     });
 
+    rel.compositions.forEach((a) => {
+        const fieldExists = hasManualCompositionField(cls, a);
+        if (!fieldExists) {
+            body.push(`val ${a.toLowerCase()}: ${a} = ???`);
+        }
+    });
+
     // ver que no se repitan
-    if ((rel.associations.length || rel.aggregations.length) && cls.fields.length) body.push("");
+    if ((rel.associations.length || rel.aggregations.length || rel.compositions.length) && cls.fields.length) body.push("");
     cls.fields.forEach((f) => body.push(formatField(f)));
     if (cls.fields.length && cls.methods.length) body.push("");
 
@@ -149,7 +164,14 @@ function createClassBody(cls: Class, rel: ClassRelations): string[] {
         }
     });
 
-    if ((rel.associations.length || rel.aggregations.length) && cls.methods.length) body.push("");
+    rel.compositions.forEach((a) => {
+        const fieldExists = hasManualCompositionField(cls, a);
+        if (!fieldExists) {
+            body.push(`val ${a.toLowerCase()}: ${a} = ???`);
+        }
+    });
+
+    if ((rel.associations.length || rel.aggregations.length || rel.compositions.length) && cls.methods.length) body.push("");
 
     cls.methods.forEach((m) => {
         const signature = formatMethodSignature(m);

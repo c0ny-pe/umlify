@@ -192,7 +192,7 @@ describe('generateScalaCode', () => {
     });
   });
 
-  describe('associations and aggregations', () => {
+  describe('associations, aggregations and compositions', () => {
     it('generates association field when not defined manually', () => {
       const code = generateScalaCode(model(
         [cls({ id: '1', name: 'Engine' }), cls({ id: '2', name: 'Car' })],
@@ -238,6 +238,26 @@ describe('generateScalaCode', () => {
         [rel('2', '1', 'aggregation')],
       ));
       const matches = (code.match(/val wheel: Wheel/g) || []).length;
+      expect(matches).toBe(1);
+    });
+
+    it('generates composition field when not defined manually', () => {
+      const code = generateScalaCode(model(
+        [cls({ id: '1', name: 'Engine' }), cls({ id: '2', name: 'Car' })],
+        [rel('2', '1', 'composition')],
+      ));
+      expect(code).toContain('val engine: Engine = ???');
+    });
+
+    it('does not duplicate composition field already defined in class', () => {
+      const code = generateScalaCode(model(
+        [
+          cls({ id: '1', name: 'Engine' }),
+          cls({ id: '2', name: 'Car', fields: [field('engine', 'Engine')] }),
+        ],
+        [rel('2', '1', 'composition')],
+      ));
+      const matches = (code.match(/val engine: Engine/g) || []).length;
       expect(matches).toBe(1);
     });
   });

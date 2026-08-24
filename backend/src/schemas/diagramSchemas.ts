@@ -4,11 +4,11 @@ const nonEmptyText = z.string().trim().min(1);
 
 export const visibilitySchema = z.enum(['public', 'protected', 'private']);
 export const classTypeSchema = z.enum(['concreteClass', 'abstractClass', 'trait']);
-// El subconjunto del curso no expone composition en el editor.
 // dependency se mantiene en el payload porque se normaliza como asociación en la exportación.
 export const relationTypeSchema = z.enum([
   'aggregation',
   'association',
+  'composition',
   'dependency',
   'implementation',
   'inheritance',

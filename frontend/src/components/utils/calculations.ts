@@ -93,8 +93,8 @@ function getHandleCoordsByPosition(
     throw new InvalidHandleException();
   }
 
-  let offsetX: number = handle.width / 2;
-  let offsetY: number = handle.height / 2;
+  const offsetX: number = handle.width / 2;
+  const offsetY: number = handle.height / 2;
 
   const x = node.internals.positionAbsolute.x + handle.x + offsetX;
   const y = node.internals.positionAbsolute.y + handle.y + offsetY;

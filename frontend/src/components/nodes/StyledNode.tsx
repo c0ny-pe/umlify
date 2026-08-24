@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction, useState, useRef, useEffect, useMemo } from "react";
-import { createTheme, ThemeProvider } from "@mui/material";
+import { createTheme, ThemeProvider, Tooltip } from "@mui/material";
 import { Edge, Handle, NodeProps, Position, useStore } from "@xyflow/react";
 import UMLNode, { CustomNode, Visibility } from "../../model/UMLNode";
 
@@ -45,7 +45,14 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
   const { data } = node;
   const zoom = useStore((s) => s.transform[2]);
   /** Defines the handles for each side of the node */
-  const LEFT_RIGHT_HANDLES = 3;
+  const LEFT_RIGHT_HANDLES = 4;
+  /** Relation created when connecting from each handle, by its id suffix. */
+  const HANDLE_RELATION_LABELS: Record<number, string> = {
+    1: "Asociación",
+    2: "Herencia o implementación",
+    3: "Agregación",
+    4: "Composición",
+  };
   /** Fixed visual size in screen pixels regardless of zoom */
   const HANDLE_PX = 14;
   const handleSize = HANDLE_PX / (zoom || 1);
@@ -115,7 +122,7 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
     numHandles: number
   ): JSX.Element[] => {
     let identifier: string;
-    let handles: JSX.Element[] = [];
+    const handles: JSX.Element[] = [];
 
     switch (position) {
       case Position.Left:
@@ -156,13 +163,19 @@ const StyledNode = (props: StyledNodeProps): JSX.Element => {
 
     for (let i = 1; i <= numHandles; i++) {
       handles.push(
-        <Handle
+        <Tooltip
           key={`${identifier}-handle-${i}`}
-          type="source"
-          position={position}
-          id={`${identifier}-handle-${i}`}
-          style={defineStyle(i)}
-        />
+          title={HANDLE_RELATION_LABELS[i] ?? ""}
+          placement="top"
+          arrow
+        >
+          <Handle
+            type="source"
+            position={position}
+            id={`${identifier}-handle-${i}`}
+            style={defineStyle(i)}
+          />
+        </Tooltip>
       );
     }
 

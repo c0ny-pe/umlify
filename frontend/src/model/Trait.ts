@@ -50,7 +50,7 @@ class Trait extends UMLAbstractClass {
   }
 
   traitEdgeType: (_trait: Trait) => EdgeType = (_trait) => {
-    return "implementation"
+    return "inheritance"
   }
 
   abstractClassEdgeType: (_abstractClass: AbstractClass) => EdgeType = (_abstractClass) => {

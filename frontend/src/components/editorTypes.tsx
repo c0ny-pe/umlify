@@ -1,7 +1,8 @@
-import type { EdgeProps, EdgeTypes, NodeProps, NodeTypes } from "@xyflow/react";
+import type { EdgeTypes, NodeProps, NodeTypes } from "@xyflow/react";
 import StyledNode from "./nodes/StyledNode";
 import AggregationEdge from "./edges/AggregationEdge";
 import AssociationEdge from "./edges/AssociationEdge";
+import CompositionEdge from "./edges/CompositionEdge";
 import DependencyEdge from "./edges/DependencyEdge";
 import ImplementationEdge from "./edges/ImplementationEdge";
 import InheritanceEdge from "./edges/InheritanceEdge";
@@ -46,6 +47,7 @@ export const nodeTypes: NodeTypes = {
 export const edgeTypes: EdgeTypes = {
   aggregation: AggregationEdge,
   association: AssociationEdge,
+  composition: CompositionEdge,
   dependency: DependencyEdge,
   implementation: ImplementationEdge,
   inheritance: InheritanceEdge,

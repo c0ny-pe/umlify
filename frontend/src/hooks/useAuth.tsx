@@ -11,10 +11,9 @@ import api from "../services/api";
 import {
   AUTH_STATE_EVENT,
   AUTH_STORAGE_KEY,
-  AUTH_TOKEN_KEY,
   clearStoredSession,
   dispatchAuthStateChanged,
-  getValidStoredToken,
+  setStoredCsrfToken,
 } from "../utils/authSession";
 
 export type AuthUser = {
@@ -24,7 +23,6 @@ export type AuthUser = {
 
 type AuthResponse = {
   user: AuthUser;
-  token: string;
 };
 
 type AuthCredentials = {
@@ -35,10 +33,11 @@ type AuthCredentials = {
 type AuthContextValue = {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  isInitializing: boolean;
   login: (credentials: AuthCredentials) => Promise<AuthUser>;
   register: (credentials: AuthCredentials) => Promise<AuthUser>;
   updateProfile: (payload: { username: string }) => Promise<AuthUser>;
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -61,21 +60,9 @@ function readStoredUser(): AuthUser | null {
   }
 }
 
-function readStoredToken(): string | null {
-  return getValidStoredToken();
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser());
-  const [tokenPresent, setTokenPresent] = useState<boolean>(() => Boolean(readStoredToken()));
-
-  const syncAuthFromStorage = useCallback(() => {
-    const token = readStoredToken();
-    const storedUser = readStoredUser();
-
-    setTokenPresent(Boolean(token));
-    setUser(token ? storedUser : null);
-  }, []);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -85,57 +72,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  useEffect(() => {
-    syncAuthFromStorage();
-    window.addEventListener(AUTH_STATE_EVENT, syncAuthFromStorage);
-
-    return () => {
-      window.removeEventListener(AUTH_STATE_EVENT, syncAuthFromStorage);
-    };
-  }, [syncAuthFromStorage]);
-
-  const persistUser = useCallback((nextUser: AuthUser) => {
-    setUser(nextUser);
-    return nextUser;
+  const restoreLogin = useCallback(async () => {
+    try {
+      const { data } = await api.get<AuthResponse>("/users/me");
+      setUser(data.user);
+    } catch {
+      clearStoredSession();
+      setUser(null);
+    } finally {
+      setIsInitializing(false);
+    }
   }, []);
 
-  const persistSession = useCallback((session: AuthResponse) => {
-    window.localStorage.setItem(AUTH_TOKEN_KEY, session.token);
-    dispatchAuthStateChanged();
-    setTokenPresent(true);
-    return persistUser(session.user);
-  }, [persistUser]);
+  useEffect(() => {
+    restoreLogin();
+
+    const handleAuthStateChanged = () => {
+      const storedUser = readStoredUser();
+      if (!storedUser) {
+        setUser(null);
+      }
+    };
+
+    window.addEventListener(AUTH_STATE_EVENT, handleAuthStateChanged);
+    return () => {
+      window.removeEventListener(AUTH_STATE_EVENT, handleAuthStateChanged);
+    };
+  }, [restoreLogin]);
+
+  const persistSession = useCallback((response: { data: AuthResponse; headers: Record<string, unknown> }) => {
+    const csrfToken = response.headers["x-csrf-token"];
+    if (typeof csrfToken === "string") {
+      setStoredCsrfToken(csrfToken);
+    }
+    setUser(response.data.user);
+    return response.data.user;
+  }, []);
 
   const login = useCallback(async (credentials: AuthCredentials) => {
-    const { data } = await api.post<AuthResponse>("/users/login", credentials);
-    return persistSession(data);
+    const response = await api.post<AuthResponse>("/users/login", credentials);
+    return persistSession(response);
   }, [persistSession]);
 
   const register = useCallback(async (credentials: AuthCredentials) => {
-    const { data } = await api.post<AuthResponse>("/users/register", credentials);
-    return persistSession(data);
+    const response = await api.post<AuthResponse>("/users/register", credentials);
+    return persistSession(response);
   }, [persistSession]);
 
   const updateProfile = useCallback(async (payload: { username: string }) => {
-    const { data } = await api.put<AuthResponse>("/users/me", payload);
-    return persistSession(data);
+    const response = await api.put<AuthResponse>("/users/me", payload);
+    return persistSession(response);
   }, [persistSession]);
 
-  const logout = useCallback(() => {
-    clearStoredSession();
-    dispatchAuthStateChanged();
-    setUser(null);
-    setTokenPresent(false);
+  const logout = useCallback(async () => {
+    try {
+      await api.post("/users/logout");
+    } finally {
+      clearStoredSession();
+      dispatchAuthStateChanged();
+      setUser(null);
+    }
   }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
-    isAuthenticated: Boolean(user && tokenPresent),
+    isAuthenticated: Boolean(user),
+    isInitializing,
     login,
     updateProfile,
     register,
     logout,
-  }), [login, logout, register, updateProfile, user, tokenPresent]);
+  }), [login, logout, register, updateProfile, user, isInitializing]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
