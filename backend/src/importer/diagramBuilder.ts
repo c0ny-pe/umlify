@@ -19,13 +19,16 @@ const ROW_HEIGHT = 260;
 const COLUMNS = 4;
 
 // Los handles del editor están numerados por tipo de relación:
-// 1 = asociación, 2 = herencia/implementación, 3 = agregación.
+// 1 = asociación, 2 = herencia/implementación, 3 = agregación, 4 = composición.
 const HANDLES: Record<PayloadEdge["type"], { source: string; target: string }> = {
     association: { source: "right-handle-1", target: "left-handle-1" },
     dependency: { source: "right-handle-1", target: "left-handle-1" },
     inheritance: { source: "top-handle-2", target: "bottom-handle-2" },
     implementation: { source: "top-handle-2", target: "bottom-handle-2" },
     aggregation: { source: "right-handle-3", target: "left-handle-3" },
+    // El código fuente no distingue composición de asociación, así que el
+    // importador nunca la emite; el handle existe para completar el mapa.
+    composition: { source: "right-handle-4", target: "left-handle-4" },
 };
 
 function classTypeOf(decl: ScalaTypeDecl): PayloadNode["classType"] {
@@ -146,9 +149,10 @@ function buildEdges(
             const targetId = idByName.get(parentName);
             if (!parent || !targetId) return;
 
-            // El editor resuelve el tipo por doble despacho: si el destino es un
-            // trait la relación es implementación, en cualquier otro caso herencia.
-            if (parent.kind === "trait") {
+            // El editor resuelve el tipo por doble despacho: una clase que
+            // extiende un trait implementa, y un trait que extiende otro trait
+            // hereda. Todo lo demás es herencia.
+            if (parent.kind === "trait" && decl.kind !== "trait") {
                 addEdge(sourceId, targetId, "implementation");
                 return;
             }

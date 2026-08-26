@@ -192,6 +192,15 @@ describe('buildDiagramFromScala', () => {
     expect(corriente.methods[0]).toMatchObject({ name: 'puedeGirar', codType: 'Boolean' });
   });
 
+  it('creates an inheritance edge between two traits', () => {
+    const diagram = buildDiagramFromScala(`
+      trait Volador { def volar(): Unit }
+      trait Planeador extends Volador
+    `);
+
+    expect(diagram.edges.map((e) => e.type)).toEqual(['inheritance']);
+  });
+
   it('creates an implementation edge when the parent is a trait', () => {
     const diagram = buildDiagramFromScala(`
       trait Volador { def volar(): Unit }
