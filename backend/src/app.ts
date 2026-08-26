@@ -1,6 +1,7 @@
 import express, { NextFunction, Request, Response } from "express";
 import path from "path";
 import fs from "fs";
+import cookieParser from "cookie-parser";
 import helmetConfig from "./config/helmet";
 import corsMiddleware from "./config/cors";
 import userRoutes from "./routes/userRoutes";
@@ -26,6 +27,7 @@ const hasBuild = fs.existsSync(INDEX_HTML);
 app.use(helmetConfig);
 app.use(corsMiddleware);
 app.use(express.json());
+app.use(cookieParser());
 
 const requestLogger = (
     request: Request,

@@ -52,7 +52,7 @@ export default function ExportScalaButton({ payload, onToast }: ExportScalaButto
       try {
         const isDark = document.documentElement.classList.contains("dark");
         const html = await codeToHtml(code, {
-          lang: "scala" as any,
+          lang: "scala",
           theme: isDark ? "github-dark" : "github-light",
         });
 

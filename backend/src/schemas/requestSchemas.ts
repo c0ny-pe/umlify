@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { diagramPayloadSchema } from './diagramSchemas';
 
 const nonEmptyText = z.string().trim().min(1);
-const positiveIntFromAny = z.coerce.number().int().positive();
 
 export const userRegisterBodySchema = z.object({
   username: nonEmptyText,
@@ -33,7 +32,6 @@ export const userDiagramsParamsSchema = z.object({
 });
 
 export const uploadDiagramBodySchema = z.object({
-  user_id: positiveIntFromAny,
   name: nonEmptyText,
   content: diagramPayloadSchema,
 });

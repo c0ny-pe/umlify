@@ -7,23 +7,19 @@ import {
 } from "react";
 import "./App.css";
 import api, { API_BASE_URL } from "./services/api";
-import { AUTH_TOKEN_KEY } from "./utils/authSession";
+import { getStoredCsrfToken } from "./utils/authSession";
 import {
   ReactFlow,
   Background,
   Controls,
   Panel,
   useReactFlow,
-  type Edge,
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnectEnd,
   applyEdgeChanges,
   applyNodeChanges,
   addEdge,
-  NodeTypes,
-  NodeProps,
-  EdgeTypes,
   ConnectionMode,
   OnNodesDelete,
 } from "@xyflow/react";
@@ -71,7 +67,7 @@ function buildDiagramPayload(nodes: GlobalContext["nodes"], edges: GlobalContext
       target: e.target,
       sourceHandle: e.sourceHandle,
       targetHandle: e.targetHandle,
-      type: (e as any).type,
+      type: e.type as string,
     })),
   };
 }
@@ -96,9 +92,9 @@ function diagramContentSignature(
     edges: edges.map((e) => ({
       source: e.source,
       target: e.target,
-      sourceHandle: (e as any).sourceHandle,
-      targetHandle: (e as any).targetHandle,
-      type: (e as any).type,
+      sourceHandle: e.sourceHandle,
+      targetHandle: e.targetHandle,
+      type: e.type,
     })),
   });
 }
@@ -155,7 +151,7 @@ function EditorScreen({
 }: EditorScreenProps) {
   const { diagramId } = useParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [loadingDiagram, setLoadingDiagram] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [needsFitView, setNeedsFitView] = useState(false);
@@ -279,7 +275,7 @@ function EditorScreen({
       target: e.target,
       sourceHandle: e.sourceHandle,
       targetHandle: e.targetHandle,
-      type: (e as any).type,
+      type: e.type as string,
     })),
     viewport: latestViewportRef.current ?? rfInstanceRef.current?.getViewport(),
   });
@@ -323,7 +319,7 @@ function EditorScreen({
               target: e.target,
               sourceHandle: e.sourceHandle,
               targetHandle: e.targetHandle,
-              type: (e as any).type,
+              type: e.type as string,
             })),
             viewport: rfInstanceRef.current?.getViewport() ?? latestViewportRef.current,
           },
@@ -369,12 +365,13 @@ function EditorScreen({
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       if (viewportSaveTimeoutRef.current) clearTimeout(viewportSaveTimeoutRef.current);
       viewportSaveTimeoutRef.current = null;
-      const token = localStorage.getItem(AUTH_TOKEN_KEY);
+      const csrfToken = getStoredCsrfToken();
       fetch(`${apiBase}/diagrams/${diagramIdRef.current}`, {
         method: "PUT",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
         },
         body: JSON.stringify({
           name: diagramTitleRef.current ?? "Diagrama sin título",
@@ -462,18 +459,17 @@ function EditorScreen({
                               target: e.target,
                               sourceHandle: e.sourceHandle,
                               targetHandle: e.targetHandle,
-                              type: (e as any).type,
+                              type: e.type as string,
                             })),
                           };
 
                           const { data } = await api.post("/diagrams", {
-                            user_id: user?.id,
                             name: "Diagrama sin título",
                             content: payload,
                           });
 
                           navigate(`/editor/${data.id}`);
-                        } catch (err) {
+                        } catch {
                           ctx.setToast({ message: "No se pudo crear el diagrama.", severity: "error" });
                         }
                       }
@@ -517,18 +513,17 @@ function EditorScreen({
                               target: e.target,
                               sourceHandle: e.sourceHandle,
                               targetHandle: e.targetHandle,
-                              type: (e as any).type,
+                              type: e.type as string,
                             })),
                           };
 
                           const { data } = await api.post("/diagrams", {
-                            user_id: user?.id,
                             name: "Diagrama sin título",
                             content: payload,
                           });
 
                           navigate(`/editor/${data.id}`);
-                        } catch (err) {
+                        } catch {
                           ctx.setToast({ message: "No se pudo crear el diagrama.", severity: "error" });
                         }
                       }
@@ -572,18 +567,17 @@ function EditorScreen({
                               target: e.target,
                               sourceHandle: e.sourceHandle,
                               targetHandle: e.targetHandle,
-                              type: (e as any).type,
+                              type: e.type as string,
                             })),
                           };
 
                           const { data } = await api.post("/diagrams", {
-                            user_id: user?.id,
                             name: "Diagrama sin título",
                             content: payload,
                           });
 
                           navigate(`/editor/${data.id}`);
-                        } catch (err) {
+                        } catch {
                           ctx.setToast({ message: "No se pudo crear el diagrama.", severity: "error" });
                         }
                       }
@@ -669,7 +663,7 @@ function EditorScreen({
 }
 function AppContent() {
   const ctx: GlobalContext = useGlobalContext();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isInitializing, user } = useAuth();
   const navigate = useNavigate();
   const [diagramTitle, setDiagramTitle] = useState<string | null>(null);
   const [diagramIdState, setDiagramIdState] = useState<string | null>(null);
@@ -686,7 +680,6 @@ function AppContent() {
     if (!wasAnonymous || !isAuthenticated || !user) return;
     if (ctx.nodes.length === 0 && !diagramTitle) return;
     api.post('/diagrams', {
-      user_id: user.id,
       name: diagramTitle ?? 'Diagrama sin título',
       content: buildDiagramPayload(ctx.nodes, ctx.edges),
     }).then(({ data }) => {
@@ -812,41 +805,8 @@ function AppContent() {
     return source.getEdgeType(target);
   }
 
-  /**
-   * Checks if a given type is composed of a target class name or not.
-   * @param {string} type - The type to be checked.
-   * @param {string} target - The target class name.
-   * @returns {boolean} True if the type is composed of the target class name, otherwise false.
-   */
-  function isTypeComposed(type: string, target: string): boolean {
-    let startIndex,
-      endIndex: number | null = null;
-
-    for (let i = 0; i < type.length; i++) {
-      if (type[i] === "[") {
-        startIndex = i;
-      } else if (type[i] === "]") {
-        while (i < type.length) {
-          if (type[i] === "]") endIndex = i;
-
-          i++;
-        }
-      }
-    }
-
-    // There's a [ or ] character missing, so it can't be a composition.
-    if (!startIndex || !endIndex) return false;
-
-    // We don't wanna include the [ and ] characters.
-    const composition = type.slice(startIndex + 1, endIndex);
-    return composition
-      .split(",")
-      .map((type) => type.trim())
-      .includes(target);
-  }
-
   function setHandleId(handleId: string, targetHandleNumber: number): string {
-    let fixedHandle: string[] = handleId.split("-");
+    const fixedHandle: string[] = handleId.split("-");
     fixedHandle[fixedHandle.length - 1] = String(targetHandleNumber);
     return fixedHandle.join("-");
   }
@@ -868,9 +828,12 @@ function AppContent() {
     return hasManualFieldType(sourceNode, `List[${targetName}]`);
   }
 
+  function hasManualCompositionField(sourceNode: UMLNode, targetName: string): boolean {
+    return hasManualFieldType(sourceNode, targetName);
+  }
+
   const onConnectEnd: OnConnectEnd = (_event, connectionState) => {
     // We can only proceed when the connection is clearly between two nodes.
-    console.log(_event, connectionState);
     if (
       connectionState.fromNode &&
       connectionState.fromHandle &&
@@ -880,7 +843,7 @@ function AppContent() {
       const sourceId = connectionState.fromNode.id;
       const targetId = connectionState.toNode.id;
 
-      let nodes: UMLNode[] = ctx.nodes;
+      const nodes: UMLNode[] = ctx.nodes;
 
       const sourceNode = nodes.find(
         (node) => node.id === Number(sourceId)
@@ -889,7 +852,7 @@ function AppContent() {
         (node) => node.id === Number(targetId)
       ) as UMLNode;
 
-      let edgeTypes: { type: EdgeType; id: number }[] = [];
+      const edgeTypes: { type: EdgeType; id: number }[] = [];
 
       //TODO: remove
       const [sourceHandleNumber] = (connectionState.fromHandle.id as string)
@@ -897,7 +860,7 @@ function AppContent() {
         .slice(-1);
 
       switch (sourceHandleNumber) {
-        case "1":
+        case "1": {
           edgeTypes.push({ type: "association", id: 1 });
 
           // Advertencia si no existe field manual para esta asociación
@@ -910,6 +873,7 @@ function AppContent() {
             });
           }
           break;
+        }
         case "2":
           try {
             // Validar que no haya herencia múltiple
@@ -920,17 +884,17 @@ function AppContent() {
               throw new Error("Una clase solo puede extender de una única clase");
             }
 
-            let inheritance = defineEdgeType(sourceNode, targetNode);
+            const inheritance = defineEdgeType(sourceNode, targetNode);
             edgeTypes.push({ type: inheritance, id: 2 });
-          } catch (error: any) {
+          } catch (error) {
             ctx.setToast({
-              message: error.message || "No se pudo crear la herencia",
+              message: error instanceof Error ? error.message : "No se pudo crear la herencia",
               severity: "error",
             });
             return;
           }
           break;
-        case "3":
+        case "3": {
           edgeTypes.push({ type: "aggregation", id: 3 });
 
           // Advertencia si no existe field manual para esta relación
@@ -943,13 +907,28 @@ function AppContent() {
             });
           }
           break;
+        }
+        case "4": {
+          edgeTypes.push({ type: "composition", id: 4 });
+
+          // Advertencia si no existe field manual para esta relación
+          const compTargetName = targetNode.getName();
+          const compFieldExists = hasManualCompositionField(sourceNode, compTargetName);
+          if (!compFieldExists) {
+            ctx.setToast({
+              message: `Se generará automáticamente en el código a exportar: val ${compTargetName.toLowerCase()}: ${compTargetName} = ???`,
+              severity: "warning",
+            });
+          }
+          break;
+        }
         default:
           return;
       }
       if (edgeTypes.length === 0) return;
 
       let newEdges = ctx.edges;
-      for (let { type, id } of edgeTypes) {
+      for (const { type, id } of edgeTypes) {
         newEdges = addEdge(
           {
             source: sourceId,
@@ -1060,7 +1039,7 @@ function AppContent() {
           if (!diagramIdState) {
             if (!isAuthenticated) return;
             try {
-              const { data } = await api.post('/diagrams', { user_id: user?.id, name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
+              const { data } = await api.post('/diagrams', { name: nextTitle, content: buildDiagramPayload(ctx.nodes, ctx.edges) });
               setDiagramIdState(data.id);
               navigate(`/editor/${data.id}`, { replace: true });
             } catch {
@@ -1077,18 +1056,18 @@ function AppContent() {
       />
       <SaveModal open={showSaveModal} onClose={() => setShowSaveModal(false)} />
       <Routes>
-        <Route path="/" element={isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
+        <Route path="/" element={isInitializing ? null : isAuthenticated ? <Library /> : <Navigate to="/login" replace />} />
         <Route
           path="/editor"
           element={<EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider>}
         />
         <Route
           path="/editor/:diagramId"
-          element={isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
+          element={isInitializing ? null : isAuthenticated ? <EditorCanvasProvider value={editorCanvasValue}><EditorScreen ctx={ctx} onNodesChange={onNodesChange} onNodesDelete={onNodesDelete} onEdgesChange={onEdgesChange} onConnectEnd={onConnectEnd} resetEditMode={resetEditMode} setDiagramTitle={setDiagramTitle} setDiagramId={setDiagramIdState} diagramTitle={diagramTitle} setSaveStatus={setSaveStatus} getNodeEditMode={getNodeEditMode} /></EditorCanvasProvider> : <Navigate to="/login" replace />}
         />
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
-        <Route path="/signup" element={isAuthenticated ? <Navigate to="/" replace /> : <SignUp />} />
-        <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />} />
+        <Route path="/login" element={isInitializing ? null : isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+        <Route path="/signup" element={isInitializing ? null : isAuthenticated ? <Navigate to="/" replace /> : <SignUp />} />
+        <Route path="/settings" element={isInitializing ? null : isAuthenticated ? <Settings /> : <Navigate to="/login" replace />} />
         <Route path="/register" element={<Navigate to="/signup" replace />} />
       </Routes>
     </>
@@ -1098,7 +1077,7 @@ function AppContent() {
 // React Router basename: matches Vite's base path so client routes resolve under
 // the deploy subpath (e.g. "/umlify"). Falls back to "/" in local dev.
 const ROUTER_BASENAME =
-  String((import.meta as any).env?.BASE_URL ?? "/").replace(/\/+$/, "") || "/";
+  String(import.meta.env?.BASE_URL ?? "/").replace(/\/+$/, "") || "/";
 
 function App() {
   return (

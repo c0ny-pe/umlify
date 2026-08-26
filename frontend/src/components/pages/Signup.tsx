@@ -35,7 +35,7 @@ const SignUp = () => {
             setPassword("");
             setConfirmPassword("");
             navigate("/", { replace: true });
-        } catch (exception) {
+        } catch {
             setError("No pudimos crear la cuenta. Ese nombre de usuario quizá ya existe.");
         }
     };

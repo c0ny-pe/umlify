@@ -2,14 +2,14 @@ import axios from "axios";
 import {
   clearStoredSession,
   dispatchAuthStateChanged,
-  getValidStoredToken,
+  getStoredCsrfToken,
 } from "../utils/authSession";
 
 // In dev the backend lives on another origin (VITE_API_TARGET, e.g. localhost:3001).
 // In production the SPA and API share an origin and the app is served under a base
 // path (Vite's BASE_URL, e.g. "/umlify/"), so the API is the same-origin "/umlify/api".
-const explicitTarget = (import.meta as any).env?.VITE_API_TARGET;
-const basePath = String((import.meta as any).env?.BASE_URL ?? "/").replace(/\/+$/, "");
+const explicitTarget = import.meta.env?.VITE_API_TARGET;
+const basePath = String(import.meta.env?.BASE_URL ?? "/").replace(/\/+$/, "");
 
 export const API_BASE_URL = explicitTarget
   ? String(explicitTarget).replace(/\/$/, "") + "/api"
@@ -17,13 +17,14 @@ export const API_BASE_URL = explicitTarget
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
-  const token = getValidStoredToken();
-  if (token) {
+  const csrfToken = getStoredCsrfToken();
+  if (csrfToken) {
     config.headers = config.headers ?? {};
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers["X-CSRF-Token"] = csrfToken;
   }
 
   return config;

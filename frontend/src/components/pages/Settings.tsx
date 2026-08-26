@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { isAxiosError } from 'axios';
 import { BadgeCheck, Lock, User } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useGlobalContext } from '../../hooks/useGlobalContext';
@@ -47,8 +48,8 @@ export default function Settings() {
             setNewPassword('');
             setConfirmPassword('');
             setUsername(nextUsername);
-        } catch (error: any) {
-            const message = error?.response?.status === 409
+        } catch (error) {
+            const message = isAxiosError(error) && error.response?.status === 409
                 ? 'Ese nombre de usuario ya está en uso.'
                 : 'No pudimos guardar los cambios.';
             setToast({ message, severity: 'error' });

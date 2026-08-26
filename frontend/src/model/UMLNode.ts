@@ -6,7 +6,7 @@ import ConcreteClass from "./ConcreteClass";
 export type Type = string;
 export type Visibility = "public" | "protected" | "private";
 export type ClassType = "trait" | "concreteClass" | "abstractClass";
-export type EdgeType = "aggregation" | "association"
+export type EdgeType = "aggregation" | "association" | "composition"
   | "dependency" | "implementation" | "inheritance" | never;
 
 export interface MethodType {

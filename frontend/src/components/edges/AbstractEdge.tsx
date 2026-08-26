@@ -119,12 +119,14 @@ export function AbstractEdge({
     })
   }
 
+  const markerId = `marker-${markerType}-${markerFilled ? 'filled' : 'empty'}`;
+
   return (
     <>
       <defs>
         {markerType === 'hat' && (
           <marker
-            id="marker-hat"
+            id={markerId}
             markerWidth={MARKERS_WIDTH}
             markerHeight={MARKERS_HEIGHT}
             refX={MARKERS_WIDTH}
@@ -140,7 +142,7 @@ export function AbstractEdge({
         )}
         {markerType === 'diamond' && (
           <marker
-            id="marker-diamond"
+            id={markerId}
             markerWidth={DIAMOND_FIXED_FACTOR * MARKERS_WIDTH}
             markerHeight={MARKERS_HEIGHT}
             refX={0.8 * MARKERS_WIDTH}
@@ -156,7 +158,7 @@ export function AbstractEdge({
         )}
         {markerType === 'triangle' && (
           <marker
-            id="marker-triangle"
+            id={markerId}
             markerWidth={MARKERS_WIDTH}
             markerHeight={MARKERS_HEIGHT}
             refX={MARKERS_WIDTH}
@@ -179,8 +181,8 @@ export function AbstractEdge({
         <BaseEdge
           id={id}
           path={edgePath}
-          markerStart={markerType === 'diamond' ? `url(#marker-${markerType})` : undefined}
-          markerEnd={markerType === 'diamond' ? undefined : `url(#marker-${markerType})`}
+          markerStart={markerType === 'diamond' ? `url(#${markerId})` : undefined}
+          markerEnd={markerType === 'diamond' ? undefined : `url(#${markerId})`}
           style={edgeStyle}
         />
 
