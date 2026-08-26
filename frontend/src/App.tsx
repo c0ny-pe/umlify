@@ -47,9 +47,10 @@ import ConcreteClass from "./model/ConcreteClass";
 import ExportPNGButton from "./components/ExportPNGButton";
 import ExportSVGButton from "./components/ExportSVGButton";
 import ExportScalaButton, { type DiagramPayload } from "./components/ExportScalaButton";
+import ImportScalaButton from "./components/ImportScalaButton";
 import { SaveModal } from "./components/SaveModal";
 import ToastAlert from "./components/ToastAlert";
-import { hydrateDiagramData } from "./utils/diagramHydration";
+import { hydrateDiagramData, parseAndHydrateDiagram } from "./utils/diagramHydration";
 import { applyDagreLayout } from "./utils/autoLayout";
 import { EditorCanvasProvider } from "./components/editorCanvasContext";
 import { edgeTypes, nodeTypes } from "./components/editorTypes";
@@ -1017,10 +1018,39 @@ function AppContent() {
     setTimeout(() => rfInstance.fitView({ padding: 0.2, duration: 200 }), 50);
   }, [ctx]);
 
+  // El importador de Scala devuelve el mismo payload que se guarda en la base,
+  // así que se hidrata igual que un diagrama cargado desde el servidor.
+  const handleImportedDiagram = useCallback(
+    (payload: unknown) => {
+      const hydrated = parseAndHydrateDiagram(payload);
+
+      ctx.setNodes(hydrated.nodes);
+      ctx.setEdges(hydrated.edges);
+      ctx.setNextNodeId(hydrated.nextNodeId);
+      resetEditMode();
+
+      // Dagre necesita que React Flow ya haya medido los nodos recién creados.
+      window.setTimeout(() => {
+        const rfInstance = ctx.reactFlowInstance;
+        if (!rfInstance) return;
+        applyDagreLayout(hydrated.nodes, hydrated.edges, rfInstance);
+        ctx.setNodes([...hydrated.nodes]);
+        window.setTimeout(() => rfInstance.fitView({ padding: 0.2, duration: 200 }), 60);
+      }, 250);
+    },
+    [ctx, resetEditMode]
+  );
+
   return (
     <>
       <NavBar
         editorActions={editorActions}
+        importActions={
+          <ImportScalaButton
+            onImported={handleImportedDiagram}
+            hasContent={ctx.nodes.length > 0}
+          />
+        }
         diagramTitle={diagramTitle}
         saveStatus={saveStatus}
         onAutoLayout={handleAutoLayout}

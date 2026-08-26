@@ -44,3 +44,8 @@ export const updateDiagramBodySchema = z.object({
 });
 
 export const generateCodeBodySchema = diagramPayloadSchema;
+
+export const importCodeBodySchema = z.object({
+  code: z.string().refine((value) => value.trim().length > 0, 'El código no puede estar vacío'),
+});
+

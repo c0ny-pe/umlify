@@ -6,6 +6,7 @@ import corsMiddleware from "./config/cors";
 import userRoutes from "./routes/userRoutes";
 import diagramRoutes from "./routes/diagramRoutes";
 import generatorRoutes from "./routes/generatorRoutes";
+import importerRoutes from "./routes/importerRoutes";
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use(requestLogger);
 app.use(`${BASE_PATH}/api/users`, userRoutes);
 app.use(`${BASE_PATH}/api/diagrams`, diagramRoutes);
 app.use(`${BASE_PATH}/api/generator`, generatorRoutes);
+app.use(`${BASE_PATH}/api/importer`, importerRoutes);
 
 // Serve the built SPA (production). Assets are referenced under BASE_PATH
 // because the frontend is built with Vite `base` set to "<BASE_PATH>/".

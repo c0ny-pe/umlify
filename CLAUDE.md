@@ -63,6 +63,23 @@ Key generator rules to preserve when editing:
 
 Types in `types/generator.ts` are **derived from the Zod schema** via `z.infer` + `Omit`, so the generator's `Class`/`Relation` stay tied to the validated payload.
 
+### Scala importer (backend)
+
+The inverse of the generator, also HTTP-agnostic. `POST /api/importer` with `{ code }` → `controllers/importerController.ts`:
+
+1. `importer/scalaParser.ts` — `parseScalaSource` is a hand-written declaration-level parser (no Scala grammar dependency exists in npm that is worth its weight here). It masks comments and literals, then walks statements skipping method bodies by brace balancing. It returns `ScalaTypeDecl[]` (kind, name, fields, methods, parents).
+2. `importer/diagramBuilder.ts` — `buildDiagramFromScala` turns those declarations into the same `{ nodes, edges }` payload the editor consumes, and the controller re-validates it with `diagramPayloadSchema` before responding.
+
+Rules the importer preserves:
+- `trait` / `abstract class` / `class` map to the three `classType` values; a `def` without `=` or `{` is `abstract: true`.
+- Constructor params become fields (the generator emits fields as constructor params, so the round-trip holds); `val`/`var` members become fields too, with type inference when the annotation is missing.
+- Parents resolve to `implementation` when the target is a trait and `inheritance` otherwise, mirroring the frontend double dispatch. Only the first class parent becomes an inheritance edge. Parents not present in the pasted code are ignored.
+- A field typed as a known class emits an `association` edge; `List[X]` and friends emit `aggregation`.
+- Edge handle ids encode the relation: `-1` association, `-2` inheritance/implementation, `-3` aggregation.
+- A method with no declared return type inherits it from the method it overrides; unknown types are emitted as `""` (the editor and the generator both render that as `Unit`). Scala 3 indentation-based bodies are not supported: declarations need braces.
+
+Frontend side: `components/ImportScalaButton.tsx` posts the pasted code and `App.tsx` hydrates the response with `parseAndHydrateDiagram`, then runs Dagre.
+
 ### Frontend model layer (OOP + double dispatch)
 
 `frontend/src/model/` is a class hierarchy, not plain data. `UMLAbstractClass` is the base; `Trait`, `AbstractClass`, `ConcreteClass` are concrete subclasses. Edge type between two nodes is resolved by **double dispatch**: `source.getEdgeType(target)` calls `target.<sourceKind>EdgeType(source)`. To change which relations are legal between two node kinds, edit the `traitEdgeType` / `abstractClassEdgeType` / `concreteClassEdgeType` methods on each model class — not a central table.

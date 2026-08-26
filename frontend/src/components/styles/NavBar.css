@@ -366,6 +366,26 @@ html.dark .scala-export-dialog-content .MuiInputBase-input {
   color: #fff;
 }
 
+.navbar-import-trigger {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1.5px solid var(--card-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.navbar-import-trigger:hover {
+  background: var(--muted-bg);
+}
+
 .navbar-export-trigger {
   appearance: none;
   border: 0;

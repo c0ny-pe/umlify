@@ -84,6 +84,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved';
 
 type NavBarProps = {
     editorActions?: ReactNode;
+    importActions?: ReactNode;
     diagramTitle?: string | null;
     onDiagramTitleChange?: (title: string) => void;
     diagramId?: string | null;
@@ -92,7 +93,7 @@ type NavBarProps = {
     onSaveAnonymous?: () => void;
 };
 
-const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus, onAutoLayout, onSaveAnonymous }: NavBarProps) => {
+const NavBar = ({ editorActions, importActions, diagramTitle, onDiagramTitleChange, saveStatus, onAutoLayout, onSaveAnonymous }: NavBarProps) => {
     const { user, isAuthenticated, logout } = useAuth();
     const { isDark, toggle: toggleTheme } = useTheme();
     const { pathname } = useLocation();
@@ -220,6 +221,7 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus,
 
                 {/* Right zone: export + avatar */}
                 <div className="navbar-right">
+                    {isEditorView && importActions}
                     {isEditorView && editorActions && (
                         <>
                             <button
@@ -397,6 +399,7 @@ const NavBar = ({ editorActions, diagramTitle, onDiagramTitleChange, saveStatus,
                         <ArrowLeft size={15} strokeWidth={2.2} />
                         Volver
                     </button>
+                    {importActions}
                     {editorActions && (
                         <>
                             <button
