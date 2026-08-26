@@ -20,6 +20,60 @@ const makeNode = () =>
     0
   );
 
+describe("reordenar miembros", () => {
+  const metodo = (name: string): MethodType => ({
+    name,
+    domType: [],
+    codType: "",
+    visibility: "public",
+    abstract: false,
+  });
+
+  const conMetodos = () =>
+    new ConcreteClass(
+      1,
+      "Cuenta",
+      [metodo("a"), metodo("b"), metodo("c")],
+      [
+        { name: "x", type: "Int", visibility: "public" },
+        { name: "y", type: "Int", visibility: "public" },
+      ],
+      0,
+      0
+    );
+
+  it("sube y baja un método", () => {
+    const node = conMetodos();
+
+    node.moveMethodAt(2, -1);
+    expect(node.getMethods().map((m) => m.name)).toEqual(["a", "c", "b"]);
+
+    node.moveMethodAt(0, 1);
+    expect(node.getMethods().map((m) => m.name)).toEqual(["c", "a", "b"]);
+    expect(node.getNode().data.methods).toEqual(node.getMethods());
+  });
+
+  it("intercambia atributos y deja el orden en el nodo", () => {
+    const node = conMetodos();
+
+    node.moveFieldAt(0, 1);
+
+    expect(node.getFields().map((f) => f.name)).toEqual(["y", "x"]);
+    expect(node.getNode().data.fields).toEqual(node.getFields());
+  });
+
+  it("ignora un movimiento fuera de la lista", () => {
+    const node = conMetodos();
+
+    node.moveMethodAt(0, -1);
+    node.moveMethodAt(2, 1);
+    node.moveFieldAt(5, -1);
+
+    expect(node.getMethods().map((m) => m.name)).toEqual(["a", "b", "c"]);
+    expect(node.getFields().map((f) => f.name)).toEqual(["x", "y"]);
+  });
+});
+
 describe("constructores en el modelo", () => {
   it("edita el constructor de una posición sin tocar al otro", () => {
     const node = makeNode();

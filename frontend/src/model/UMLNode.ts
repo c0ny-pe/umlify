@@ -53,6 +53,8 @@ export default interface UMLNode {
   updateField: (f: FieldType, newField: FieldType) => void;
   addField: (f: FieldType) => void;
   removeField: (f: FieldType) => void;
+  // offset -1 sube el elemento y +1 lo baja; fuera de rango no hace nada.
+  moveFieldAt: (index: number, offset: number) => void;
   getFields: () => FieldType[];
   updateMethod: (m: MethodType, newMethod: MethodType) => void;
   // Los constructores comparten nombre entre sí, así que se editan por posición.
@@ -60,6 +62,7 @@ export default interface UMLNode {
   addMethod: (m: MethodType) => void;
   removeMethod: (m: MethodType) => void;
   removeMethodAt: (index: number) => void;
+  moveMethodAt: (index: number, offset: number) => void;
   getMethods: () => MethodType[];
   // Double dispatch methods
   getEdgeType: (target: UMLNode) => EdgeType;

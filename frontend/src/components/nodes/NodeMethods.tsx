@@ -26,7 +26,7 @@ import {
   Chip,
 } from "@mui/material";
 
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Plus, Trash2 } from "lucide-react";
 
 type NodeMethodsProps = {
   data: CustomNodeData;
@@ -86,6 +86,20 @@ const NodeMethods = (props: NodeMethodsProps) => {
   // dibuja sin tipo de retorno.
   const isConstructor = (method: MethodType): boolean =>
     method.name.trim() === data.name.trim();
+
+  /** Reordena un método y deja abierto el panel que se movió. */
+  const moveMethod = (index: number, offset: number): void => {
+    setNodes((oldNodes) => {
+      const [retrievedNode] = oldNodes.filter((n: UMLNode) => n.id === data.id);
+      retrievedNode.moveMethodAt(index, offset);
+      return [...oldNodes];
+    });
+
+    if (expanded === `panel-methods${index}`) {
+      setExpanded(`panel-methods${index + offset}`);
+    }
+    forceUpdate();
+  };
 
   const drawSignature = (method: MethodType): string =>
     `${method.name}(${method.domType.join(", ")})${
@@ -178,10 +192,33 @@ const NodeMethods = (props: NodeMethodsProps) => {
                     </div>
 
                     <div
-                      style={{ width: "fit-content", alignContent: "center" }}
+                      style={{
+                        width: "fit-content",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
                     >
                       <IconButton
                         size="small"
+                        aria-label="Subir método"
+                        disabled={i === 0}
+                        onClick={() => moveMethod(i, -1)}
+                      >
+                        <ArrowUp size={16} strokeWidth={2} />
+                      </IconButton>
+
+                      <IconButton
+                        size="small"
+                        aria-label="Bajar método"
+                        disabled={i === data.methods.length - 1}
+                        onClick={() => moveMethod(i, 1)}
+                      >
+                        <ArrowDown size={16} strokeWidth={2} />
+                      </IconButton>
+
+                      <IconButton
+                        size="small"
+                        aria-label="Eliminar método"
                         onClick={() => {
                           setNodes((oldNodes) => {
                             const [retrievedNode] = oldNodes.filter(

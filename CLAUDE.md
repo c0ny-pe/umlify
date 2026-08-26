@@ -87,7 +87,9 @@ Frontend side: `components/ImportScalaButton.tsx` posts the pasted code and `App
 A method whose name equals its class name **is** a constructor — there is no flag in the schema. That convention is shared by three places: `NodeMethods` (renders it underlined and without a return type, and offers "Add constructor", which only asks for the parameters), the importer, and the generator. Two consequences to keep in mind:
 
 - `UMLAbstractClass.updateName` renames the constructors along with the class, so the convention survives a rename.
-- Constructors of the same class share a name, so methods are edited and deleted **by position** (`updateMethodAt` / `removeMethodAt`); the name-based `updateMethod` / `removeMethod` would hit the wrong one.
+- Constructors of the same class share a name, so methods are edited, deleted and reordered **by position** (`updateMethodAt` / `removeMethodAt` / `moveMethodAt`); the name-based `updateMethod` / `removeMethod` would hit the wrong one.
+
+Order is data, not decoration: fields and methods are emitted in array order, and the **first** constructor operation is the primary one. Edit mode exposes up/down arrows per row (`moveFieldAt` / `moveMethodAt`), so moving a constructor to the top is how you choose which one defines the class header.
 
 ### Frontend model layer (OOP + double dispatch)
 

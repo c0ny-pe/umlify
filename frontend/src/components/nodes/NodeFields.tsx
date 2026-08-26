@@ -22,7 +22,7 @@ import {
   Typography,
   Box,
 } from "@mui/material";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Plus, Trash2 } from "lucide-react";
 
 type NodeFieldsProps = {
   data: CustomNodeData;
@@ -71,6 +71,20 @@ const NodeFields = (props: NodeFieldsProps) => {
   };
 
   const hasEmptyType = data.fields.some((f, i) => !getEffectiveType(f, i).trim());
+
+  /** Reordena un atributo y deja abierto el panel que se movió. */
+  const moveField = (index: number, offset: number): void => {
+    setNodes((oldNodes) => {
+      const [retrievedNode] = oldNodes.filter((n: UMLNode) => n.id === data.id);
+      retrievedNode.moveFieldAt(index, offset);
+      return [...oldNodes];
+    });
+
+    if (expanded === `panel-fields${index}`) {
+      setExpanded(`panel-fields${index + offset}`);
+    }
+    forceUpdate();
+  };
 
   const fieldTypeOptions = useMemo(() => {
     const dynamicClassTypes = allowedTypeNames
@@ -136,10 +150,33 @@ const NodeFields = (props: NodeFieldsProps) => {
                     </div>
 
                     <div
-                      style={{ width: "fit-content", alignContent: "center" }}
+                      style={{
+                        width: "fit-content",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
                     >
                       <IconButton
                         size="small"
+                        aria-label="Subir atributo"
+                        disabled={i === 0}
+                        onClick={() => moveField(i, -1)}
+                      >
+                        <ArrowUp size={16} strokeWidth={2} />
+                      </IconButton>
+
+                      <IconButton
+                        size="small"
+                        aria-label="Bajar atributo"
+                        disabled={i === data.fields.length - 1}
+                        onClick={() => moveField(i, 1)}
+                      >
+                        <ArrowDown size={16} strokeWidth={2} />
+                      </IconButton>
+
+                      <IconButton
+                        size="small"
+                        aria-label="Eliminar atributo"
                         onClick={() => {
                           setNodes((oldNodes) => {
                             const [retrievedNode] = oldNodes.filter(

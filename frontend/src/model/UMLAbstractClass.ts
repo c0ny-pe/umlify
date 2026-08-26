@@ -5,6 +5,21 @@ import AbstractClass from "./AbstractClass";
 import ConcreteClass from "./ConcreteClass";
 import InvalidConnectionException from "../exceptions/InvalidConnectionException";
 
+/**
+ * Devuelve una copia con los elementos de index e index + offset intercambiados,
+ * o null si alguno de los dos queda fuera de la lista.
+ */
+function swapped<T>(list: T[], index: number, offset: number): T[] | null {
+  const target = index + offset;
+  if (index < 0 || index >= list.length) return null;
+  if (target < 0 || target >= list.length) return null;
+
+  const next = [...list];
+  next[index] = list[target];
+  next[target] = list[index];
+  return next;
+}
+
 abstract class UMLAbstractClass implements UMLNode {
   id: number;
   name: string;
@@ -112,6 +127,20 @@ abstract class UMLAbstractClass implements UMLNode {
   }
 
   /**
+   * Moves a field one position up (-1) or down (+1). The order matters: the
+   * generator emits the fields as constructor parameters in this same order.
+   * @param {number} index - The position of the field to move.
+   * @param {number} offset - How far to move it.
+   */
+  moveFieldAt: (index: number, offset: number) => void = (index, offset) => {
+    const reordered = swapped(this.fields, index, offset);
+    if (!reordered) return;
+
+    this.fields = reordered;
+    this.node.data.fields = this.fields;
+  }
+
+  /**
    * @returns {FieldType[]} The fields of this UMLNode.
    */
   getFields: () => FieldType[] = () => this.fields;
@@ -163,6 +192,19 @@ abstract class UMLAbstractClass implements UMLNode {
    */
   removeMethodAt: (index: number) => void = (index) => {
     this.methods = this.methods.filter((_, i) => i !== index);
+    this.node.data.methods = this.methods;
+  }
+
+  /**
+   * Moves a method one position up (-1) or down (+1).
+   * @param {number} index - The position of the method to move.
+   * @param {number} offset - How far to move it.
+   */
+  moveMethodAt: (index: number, offset: number) => void = (index, offset) => {
+    const reordered = swapped(this.methods, index, offset);
+    if (!reordered) return;
+
+    this.methods = reordered;
     this.node.data.methods = this.methods;
   }
 
