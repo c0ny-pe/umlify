@@ -55,8 +55,11 @@ export default interface UMLNode {
   removeField: (f: FieldType) => void;
   getFields: () => FieldType[];
   updateMethod: (m: MethodType, newMethod: MethodType) => void;
+  // Los constructores comparten nombre entre sí, así que se editan por posición.
+  updateMethodAt: (index: number, newMethod: MethodType) => void;
   addMethod: (m: MethodType) => void;
   removeMethod: (m: MethodType) => void;
+  removeMethodAt: (index: number) => void;
   getMethods: () => MethodType[];
   // Double dispatch methods
   getEdgeType: (target: UMLNode) => EdgeType;

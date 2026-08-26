@@ -50,6 +50,15 @@ const DEFAULT_NEW_METHOD: MethodType = {
   abstract: false,
 };
 
+/** El nombre lo pone la clase al agregarlo. */
+const DEFAULT_NEW_CONSTRUCTOR: MethodType = {
+  name: "",
+  domType: [],
+  codType: "",
+  visibility: "public",
+  abstract: false,
+};
+
 const NodeMethods = (props: NodeMethodsProps) => {
   const {
     data,
@@ -91,7 +100,10 @@ const NodeMethods = (props: NodeMethodsProps) => {
             return (
               <p
                 key={`method-${method.name}-${id}`}
-                style={method.abstract ? { fontStyle: "italic" } : {}}
+                style={{
+                  ...(method.abstract ? { fontStyle: "italic" } : {}),
+                  ...(isConstructor(method) ? { textDecoration: "underline" } : {}),
+                }}
               >
                 {drawVisibility(method.visibility)} {drawSignature(method)}
               </p>
@@ -105,7 +117,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                 setNodes((oldNodes) => {
                   return oldNodes.map((node: UMLNode) => {
                     if (node.id === data.id) {
-                      node.addMethod(DEFAULT_NEW_METHOD);
+                      node.addMethod({ ...DEFAULT_NEW_METHOD });
                     }
 
                     return node;
@@ -118,6 +130,29 @@ const NodeMethods = (props: NodeMethodsProps) => {
               startIcon={<Plus size={16} strokeWidth={2} />}
             >
               Add method
+            </Button>
+
+            <Button
+              size="small"
+              onClick={() => {
+                setNodes((oldNodes) => {
+                  return oldNodes.map((node: UMLNode) => {
+                    if (node.id === data.id) {
+                      // El nombre de un constructor es el de su clase: solo
+                      // quedan por definir los parámetros.
+                      node.addMethod({ ...DEFAULT_NEW_CONSTRUCTOR, name: data.name });
+                    }
+
+                    return node;
+                  });
+                });
+                setExpanded(`panel-methods${data.methods.length - 1}`);
+                forceUpdate();
+              }}
+              variant="text"
+              startIcon={<Plus size={16} strokeWidth={2} />}
+            >
+              Add constructor
             </Button>
 
             {data.methods.map((method: MethodType, i: number) => {
@@ -134,7 +169,9 @@ const NodeMethods = (props: NodeMethodsProps) => {
                         aria-controls={`panel-methods-${i}-content`}
                         id={`panel-methods-${i}-header`}
                       >
-                        <Typography>
+                        <Typography
+                          sx={isConstructor(method) ? { textDecoration: "underline" } : undefined}
+                        >
                           {drawVisibility(method.visibility)} {drawSignature(method)}
                         </Typography>
                       </AccordionSummary>
@@ -150,7 +187,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                             const [retrievedNode] = oldNodes.filter(
                               (n: UMLNode) => n.id === data.id
                             );
-                            retrievedNode.removeMethod(method);
+                            retrievedNode.removeMethodAt(i);
                             return [...oldNodes];
                           });
                           forceUpdate();
@@ -162,76 +199,74 @@ const NodeMethods = (props: NodeMethodsProps) => {
                   </Box>
 
                   <AccordionDetails>
-                    <div className="two-cols-container">
+                    {isConstructor(method) ? (
                       <TextField
                         size="small"
                         id={`method-${i}-name`}
-                        label="Method Name"
+                        label="Constructor"
                         variant="standard"
-                        defaultValue={method.name}
+                        value={data.name}
+                        disabled
+                        helperText="Toma el nombre de la clase"
                         InputLabelProps={{ shrink: true }}
-                        onChange={(e) => {
-                          setNodes((oldNodes) => {
-                            const [retrievedNode] = oldNodes.filter(
-                              (n: UMLNode) => n.id === data.id
-                            );
-                            const methodToUpdate = data.methods.find(
-                              (m) => m.name === method.name
-                            );
-
-                            if (!methodToUpdate) {
-                              return oldNodes;
-                            }
-
-                            retrievedNode.updateMethod(methodToUpdate, {
-                              ...methodToUpdate,
-                              name: e.target.value,
-                            });
-                            return [...oldNodes];
-                          });
-                          forceUpdate();
-                        }}
+                        sx={{ marginBottom: "12px" }}
                       />
-
-                      <Autocomplete
-                        freeSolo
-                        options={methodTypeOptions}
-                        openOnFocus
-                        sx={{ width: "100%" }}
-                        inputValue={method.codType ?? ""}
-                        onInputChange={(_event, nextValue) => {
-                          setNodes((oldNodes) => {
-                            const [retrievedNode] = oldNodes.filter(
-                              (n: UMLNode) => n.id === data.id
-                            );
-                            const methodToUpdate = data.methods.find(
-                              (m) => m.name === method.name
-                            );
-
-                            if (!methodToUpdate) {
-                              return oldNodes;
-                            }
-
-                            retrievedNode.updateMethod(methodToUpdate, {
-                              ...methodToUpdate,
-                              codType: nextValue,
+                    ) : (
+                      <div className="two-cols-container">
+                        <TextField
+                          size="small"
+                          id={`method-${i}-name`}
+                          label="Method Name"
+                          variant="standard"
+                          defaultValue={method.name}
+                          InputLabelProps={{ shrink: true }}
+                          onChange={(e) => {
+                            setNodes((oldNodes) => {
+                              const [retrievedNode] = oldNodes.filter(
+                                (n: UMLNode) => n.id === data.id
+                              );
+                              retrievedNode.updateMethodAt(i, {
+                                ...method,
+                                name: e.target.value,
+                              });
+                              return [...oldNodes];
                             });
-                            return [...oldNodes];
-                          });
-                          forceUpdate();
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            size="small"
-                            id={`method-${i}-codType`}
-                            label="Method Codomain Type"
-                            variant="standard"
-                            InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
-                          />
-                        )}
-                      />
-                    </div>
+                            forceUpdate();
+                          }}
+                        />
+
+                        <Autocomplete
+                          freeSolo
+                          options={methodTypeOptions}
+                          openOnFocus
+                          sx={{ width: "100%" }}
+                          inputValue={method.codType ?? ""}
+                          onInputChange={(_event, nextValue) => {
+                            setNodes((oldNodes) => {
+                              const [retrievedNode] = oldNodes.filter(
+                                (n: UMLNode) => n.id === data.id
+                              );
+                              retrievedNode.updateMethodAt(i, {
+                                ...method,
+                                codType: nextValue,
+                              });
+                              return [...oldNodes];
+                            });
+                            forceUpdate();
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              size="small"
+                              id={`method-${i}-codType`}
+                              label="Method Codomain Type"
+                              variant="standard"
+                              InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
+                            />
+                          )}
+                        />
+                      </div>
+                    )}
 
                     <Autocomplete
                       size="small"
@@ -251,18 +286,10 @@ const NodeMethods = (props: NodeMethodsProps) => {
                             const [retrievedNode] = oldNodes.filter(
                               (n: UMLNode) => n.id === data.id
                             );
-                            const methodToUpdate = data.methods.find(
-                              (m) => m.name === method.name
-                            );
-
-                            if (!methodToUpdate) {
-                              return oldNodes;
-                            }
-
                             // As newValue is read-only, we pass an array copy
                             const newDomType: Type[] = [...newValue];
-                            retrievedNode.updateMethod(methodToUpdate, {
-                              ...methodToUpdate,
+                            retrievedNode.updateMethodAt(i, {
+                              ...method,
                               domType: newDomType,
                             });
                             return [...oldNodes];
@@ -325,16 +352,8 @@ const NodeMethods = (props: NodeMethodsProps) => {
                               const [retrievedNode] = oldNodes.filter(
                                 (n: UMLNode) => n.id === data.id
                               );
-                              const methodToUpdate = data.methods.find(
-                                (m) => m.name === method.name
-                              );
-
-                              if (!methodToUpdate) {
-                                return oldNodes;
-                              }
-
-                              retrievedNode.updateMethod(methodToUpdate, {
-                                ...methodToUpdate,
+                              retrievedNode.updateMethodAt(i, {
+                                ...method,
                                 visibility: e.target.value as Visibility,
                               });
                               return [...oldNodes];
@@ -348,38 +367,32 @@ const NodeMethods = (props: NodeMethodsProps) => {
                         </Select>
                       </FormControl>
 
-                      <FormGroup>
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              size="small"
-                              checked={method.abstract}
-                              onChange={(_) => {
-                                setNodes((oldNodes) => {
-                                  const [retrievedNode] = oldNodes.filter(
-                                    (n: UMLNode) => n.id === data.id
-                                  );
-                                  const methodToUpdate = data.methods.find(
-                                    (m) => m.name === method.name
-                                  );
-
-                                  if (!methodToUpdate) {
-                                    return oldNodes;
-                                  }
-
-                                  retrievedNode.updateMethod(methodToUpdate, {
-                                    ...methodToUpdate,
-                                    abstract: !method.abstract,
+                      {!isConstructor(method) && (
+                        <FormGroup>
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                size="small"
+                                checked={method.abstract}
+                                onChange={(_) => {
+                                  setNodes((oldNodes) => {
+                                    const [retrievedNode] = oldNodes.filter(
+                                      (n: UMLNode) => n.id === data.id
+                                    );
+                                    retrievedNode.updateMethodAt(i, {
+                                      ...method,
+                                      abstract: !method.abstract,
+                                    });
+                                    return [...oldNodes];
                                   });
-                                  return [...oldNodes];
-                                });
-                                forceUpdate();
-                              }}
-                            />
-                          }
-                          label="Abstract?"
-                        />
-                      </FormGroup>
+                                  forceUpdate();
+                                }}
+                              />
+                            }
+                            label="Abstract?"
+                          />
+                        </FormGroup>
+                      )}
                     </div>
                   </AccordionDetails>
                 </Accordion>

@@ -74,13 +74,20 @@ The inverse of the generator, also HTTP-agnostic. `POST /api/importer` with `{ c
 Rules the importer preserves:
 - `trait` / `abstract class` / `class` map to the three `classType` values; a `def` without `=` or `{` is `abstract: true`.
 - Only constructor params carrying `val`/`var` (or any param of a `case class`) are state and become fields; a plain param signs the constructor and nothing else. `val`/`var` members of the body are fields too, with type inference when the annotation is missing — the primary constructor params stay in scope for that inference (`constructorScope`).
-- Every constructor, primary and each `def this(…)`, becomes an operation named after the class (`CuentaAhorro(String, Int)`). `NodeMethods` renders a method whose name equals its class without a return type.
+- Every constructor, primary and each `def this(…)`, becomes an operation named after the class (`CuentaAhorro(String, Int)`).
 - Parents resolve to `implementation` when the target is a trait and `inheritance` otherwise, mirroring the frontend double dispatch. Only the first class parent becomes an inheritance edge. Parents not present in the pasted code are ignored.
 - A field typed as a known class emits an `association` edge; `List[X]` and friends emit `aggregation`.
 - Edge handle ids encode the relation: `-1` association, `-2` inheritance/implementation, `-3` aggregation.
 - A method with no declared return type inherits it from the method it overrides; unknown types are emitted as `""` (the editor and the generator both render that as `Unit`). Scala 3 indentation-based bodies are not supported: declarations need braces.
 
 Frontend side: `components/ImportScalaButton.tsx` posts the pasted code and `App.tsx` hydrates the response with `parseAndHydrateDiagram`, then runs Dagre.
+
+### Constructors in the editor
+
+A method whose name equals its class name **is** a constructor — there is no flag in the schema. That convention is shared by three places: `NodeMethods` (renders it underlined and without a return type, and offers "Add constructor", which only asks for the parameters), the importer, and the generator. Two consequences to keep in mind:
+
+- `UMLAbstractClass.updateName` renames the constructors along with the class, so the convention survives a rename.
+- Constructors of the same class share a name, so methods are edited and deleted **by position** (`updateMethodAt` / `removeMethodAt`); the name-based `updateMethod` / `removeMethod` would hit the wrong one.
 
 ### Frontend model layer (OOP + double dispatch)
 

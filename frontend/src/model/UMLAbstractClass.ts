@@ -66,8 +66,15 @@ abstract class UMLAbstractClass implements UMLNode {
    * @param {string} newName - The new name of this UMLNode.
    */
   updateName: (newName: string) => void = (newName) => {
+    const previousName = this.name;
     this.name = newName;
     this.node.data.name = newName;
+
+    // Un constructor se llama igual que su clase: sigue al renombre.
+    this.methods = this.methods.map((m) =>
+      m.name === previousName ? { ...m, name: newName } : m
+    );
+    this.node.data.methods = this.methods;
   }
 
   /**
@@ -135,6 +142,27 @@ abstract class UMLAbstractClass implements UMLNode {
   updateMethod: (m: MethodType, newMethod: MethodType) => void = (m, newMethod) => {
     const index = this.methods.findIndex((method) => method.name === m.name);
     this.methods[index] = newMethod;
+    this.node.data.methods = this.methods;
+  }
+
+  /**
+   * Updates the method in a given position. Needed because constructors share
+   * their name with the class, so looking a method up by name is ambiguous.
+   * @param {number} index - The position of the method to update.
+   * @param {MethodType} newMethod - The updated method.
+   */
+  updateMethodAt: (index: number, newMethod: MethodType) => void = (index, newMethod) => {
+    if (index < 0 || index >= this.methods.length) return;
+    this.methods[index] = newMethod;
+    this.node.data.methods = this.methods;
+  }
+
+  /**
+   * Removes the method in a given position.
+   * @param {number} index - The position of the method to remove.
+   */
+  removeMethodAt: (index: number) => void = (index) => {
+    this.methods = this.methods.filter((_, i) => i !== index);
     this.node.data.methods = this.methods;
   }
 
