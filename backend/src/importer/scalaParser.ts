@@ -13,6 +13,13 @@ export interface ScalaField {
     fromConstructor: boolean;
 }
 
+export interface ScalaConstructor {
+    params: ScalaParam[];
+    visibility: ScalaVisibility;
+    /** false para los constructores auxiliares (def this). */
+    isPrimary: boolean;
+}
+
 export interface ScalaMethod {
     name: string;
     params: string[];
@@ -24,11 +31,20 @@ export interface ScalaMethod {
 export interface ScalaTypeDecl {
     kind: ScalaKind;
     name: string;
+    /** El primario primero, luego los auxiliares en orden de aparición. */
+    constructors: ScalaConstructor[];
+    /** Solo el estado: parámetros con val/var y miembros del cuerpo. */
     fields: ScalaField[];
     methods: ScalaMethod[];
     /** Nombres simples de los tipos en extends/with, en orden. */
     parents: string[];
 }
+
+/**
+ * Parámetros del constructor primario por declaración. No son atributos, pero
+ * un val del cuerpo puede inicializarse con ellos (private var saldo = saldoInicial).
+ */
+const constructorScope = new WeakMap<ScalaTypeDecl, ScalaParam[]>();
 
 const MODIFIERS = new Set([
     "abstract",
@@ -286,14 +302,16 @@ function splitTopLevel(text: string): string[] {
     return parts;
 }
 
-interface ParsedParam {
+export interface ScalaParam {
     name: string;
     type: string;
     visibility: ScalaVisibility;
+    /** true cuando el parámetro lleva val/var y por lo tanto es estado. */
+    declaresMember: boolean;
 }
 
 /** Parsea "[private] [val|var] nombre: Tipo [= default]". */
-function parseParam(text: string): ParsedParam | null {
+function parseParam(text: string): ScalaParam | null {
     let rest = text.trim();
     if (rest.length === 0) return null;
 
@@ -323,7 +341,12 @@ function parseParam(text: string): ParsedParam | null {
     const cleanType = normalizeType(type);
     if (!cleanType) return null;
 
-    return { name, type: cleanType, visibility: visibilityFrom(mods) };
+    return {
+        name,
+        type: cleanType,
+        visibility: visibilityFrom(mods),
+        declaresMember: mods.includes("val") || mods.includes("var"),
+    };
 }
 
 function indexOfTopLevel(text: string, char: string): number {
@@ -490,8 +513,10 @@ function parseTypeDecl(
         if (s[i] === "[") i = scanner.skipSpaces(scanner.matchBracket(i, end), end);
     }
 
-    const ctorParams: ParsedParam[] = [];
+    const ctorParams: ScalaParam[] = [];
+    let hasParamList = false;
     while (i < end && s[i] === "(") {
+        hasParamList = true;
         const close = scanner.matchBracket(i, end);
         const body = scanner.masked.slice(i + 1, close - 1);
         if (!isImplicitParamList(body)) {
@@ -520,6 +545,13 @@ function parseTypeDecl(
     }
 
     const isType = keyword === "class" || keyword === "trait";
+    // Los parámetros de una case class son miembros públicos aunque no lleven val.
+    const isCaseClass = mods.includes("case");
+    const primaryParams = ctorParams.map((p) => ({
+        ...p,
+        declaresMember: p.declaresMember || isCaseClass,
+    }));
+
     const decl: ScalaTypeDecl | null = isType
         ? {
               kind:
@@ -529,16 +561,29 @@ function parseTypeDecl(
                       ? "abstractClass"
                       : "class",
               name,
-              fields: ctorParams.map((p) => ({
-                  name: p.name,
-                  type: p.type,
-                  visibility: p.visibility,
-                  fromConstructor: true,
-              })),
+              constructors:
+                  // Un trait no tiene constructor, y una clase sin paréntesis
+                  // tampoco declara uno que valga la pena mostrar.
+                  keyword === "class" && hasParamList
+                      ? [{ params: primaryParams, visibility: visibilityFrom(mods), isPrimary: true }]
+                      : [],
+              // Solo los parámetros con val/var son estado; el resto vive en la
+              // firma del constructor.
+              fields: primaryParams
+                  .filter((p) => p.declaresMember)
+                  .map((p) => ({
+                      name: p.name,
+                      type: p.type,
+                      visibility: p.visibility,
+                      fromConstructor: true,
+                  })),
               methods: [],
               parents,
           }
         : null;
+
+    // El scope de inferencia incluye los parámetros que no son estado.
+    if (decl) constructorScope.set(decl, primaryParams);
 
     if (decl) decls.push(decl);
 
@@ -602,18 +647,19 @@ function parseDef(
     i = scanner.skipSpaces(i, end);
     if (s[i] === "[") i = scanner.skipSpaces(scanner.matchBracket(i, end), end);
 
-    const params: string[] = [];
+    const paramList: ScalaParam[] = [];
     while (i < end && s[i] === "(") {
         const close = scanner.matchBracket(i, end);
         const body = s.slice(i + 1, close - 1);
         if (!isImplicitParamList(body)) {
             splitTopLevel(body).forEach((part) => {
                 const param = parseParam(part);
-                if (param) params.push(param.type);
+                if (param) paramList.push(param);
             });
         }
         i = scanner.skipSpaces(close, end);
     }
+    const params = paramList.map((param) => param.type);
 
     let returnType: string | null = null;
     if (s[i] === ":") {
@@ -624,9 +670,14 @@ function parseDef(
 
     const bodyStart = scanner.skipSpaces(i, end);
     const hasBody = s[bodyStart] === "=" || s[bodyStart] === "{";
-    const isConstructor = name === "this";
 
-    if (owner && !isConstructor) {
+    if (owner && name === "this") {
+        owner.constructors.push({
+            params: paramList,
+            visibility: visibilityFrom(mods),
+            isPrimary: false,
+        });
+    } else if (owner) {
         owner.methods.push({
             name,
             params,
@@ -722,8 +773,11 @@ function inferType(initializer: string, owner: ScalaTypeDecl): string {
     const applied = value.match(/^([A-Z][\w.]*(\s*\[[^\]]*\])?)\s*\(/);
     if (applied) return normalizeType(applied[1]);
 
-    const known = owner.fields.find((f) => f.name === value);
-    if (known) return known.type;
+    const knownField = owner.fields.find((f) => f.name === value);
+    if (knownField) return knownField.type;
+
+    const knownParam = constructorScope.get(owner)?.find((p) => p.name === value);
+    if (knownParam) return knownParam.type;
 
     return "Any";
 }

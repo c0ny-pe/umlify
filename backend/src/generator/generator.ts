@@ -22,6 +22,23 @@ function formatMethodSignature(m: Class["methods"][number]): string {
     return `${visibility}def ${m.name}(${formatParams(m.domType)}): ${returnType}`;
 }
 
+/**
+ * Un método que se llama igual que su clase es un constructor. El primario
+ * define la cabecera y los auxiliares se emiten como def this.
+ */
+function splitConstructors(cls: Class) {
+    const isConstructor = (m: Class["methods"][number]) =>
+        m.name.trim() === cls.name.trim();
+
+    const constructors = cls.methods.filter(isConstructor);
+
+    return {
+        primary: constructors[0] ?? null,
+        auxiliary: constructors.slice(1),
+        methods: cls.methods.filter((m) => !isConstructor(m)),
+    };
+}
+
 function buildInheritanceClause(rel: ClassRelations): string {
     let inheritance = "";
 
@@ -139,8 +156,14 @@ function createTraitBody(cls: Class, rel: ClassRelations): string[] {
 }
 
 function createClassHeader(cls: Class, rel: ClassRelations): string {
-    const constructorParams = cls.fields.map(formatField);
-    const params = constructorParams.length ? `(${constructorParams.join(", ")})` : "";
+    const { primary } = splitConstructors(cls);
+    // Con un constructor declarado la cabecera es su firma; sin él se mantiene
+    // la convención de pasar los atributos como parámetros.
+    const params = primary
+        ? `(${formatParams(primary.domType)})`
+        : cls.fields.length
+        ? `(${cls.fields.map(formatField).join(", ")})`
+        : "";
     const keyword = cls.classType === "abstractClass" ? "abstract class" : "class";
 
     return `${keyword} ${cls.name}${params}${buildInheritanceClause(rel)} {`;
@@ -148,6 +171,7 @@ function createClassHeader(cls: Class, rel: ClassRelations): string {
 
 function createClassBody(cls: Class, rel: ClassRelations): string[] {
     const body: string[] = [];
+    const { primary, auxiliary, methods } = splitConstructors(cls);
 
     // Solo agregar fields de asociación si no existen manualmente
     rel.associations.forEach((a) => {
@@ -173,7 +197,20 @@ function createClassBody(cls: Class, rel: ClassRelations): string[] {
 
     if ((rel.associations.length || rel.aggregations.length || rel.compositions.length) && cls.methods.length) body.push("");
 
-    cls.methods.forEach((m) => {
+    // Los atributos ya no caben en la cabecera cuando esta viene del constructor.
+    if (primary && cls.fields.length) {
+        cls.fields.forEach((f) => body.push(`${formatField(f)} = ???`));
+        body.push("");
+    }
+
+    auxiliary.forEach((constructor) => {
+        const delegation = primary ? primary.domType.map(() => "???").join(", ") : "";
+        body.push(`def this(${formatParams(constructor.domType)}) = this(${delegation})`);
+    });
+
+    if (auxiliary.length && methods.length) body.push("");
+
+    methods.forEach((m) => {
         const signature = formatMethodSignature(m);
         body.push(m.abstract ? signature : `${signature} = ???`);
     });

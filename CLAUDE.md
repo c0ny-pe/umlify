@@ -60,6 +60,7 @@ Key generator rules to preserve when editing:
 - `inheritance` → `extends`; `implementation` on a trait target → `with`, on a class target → `extends`.
 - `association`/`dependency`/`aggregation`/`composition` → a `val x: X = ???` field. These synthesized fields are **suppressed if the user already declared a matching field manually** (`hasManualAssociationField` / `hasManualAggregationField` / `hasManualCompositionField`).
 - Concrete methods get ` = ???`; `abstract` methods emit signature only. Method params come from `domType` (positional `param1, param2, …`), return type from `codType` (defaults to `Unit`).
+- A method whose name equals its class name is a **constructor** (`splitConstructors`): the first one defines the class header instead of the fields, which then move into the body as `val x: T = ???`; the rest emit as `def this(…) = this(???, …)`. Without a constructor operation the old convention holds (fields become the constructor params).
 
 Types in `types/generator.ts` are **derived from the Zod schema** via `z.infer` + `Omit`, so the generator's `Class`/`Relation` stay tied to the validated payload.
 
@@ -72,7 +73,8 @@ The inverse of the generator, also HTTP-agnostic. `POST /api/importer` with `{ c
 
 Rules the importer preserves:
 - `trait` / `abstract class` / `class` map to the three `classType` values; a `def` without `=` or `{` is `abstract: true`.
-- Constructor params become fields (the generator emits fields as constructor params, so the round-trip holds); `val`/`var` members become fields too, with type inference when the annotation is missing.
+- Only constructor params carrying `val`/`var` (or any param of a `case class`) are state and become fields; a plain param signs the constructor and nothing else. `val`/`var` members of the body are fields too, with type inference when the annotation is missing — the primary constructor params stay in scope for that inference (`constructorScope`).
+- Every constructor, primary and each `def this(…)`, becomes an operation named after the class (`CuentaAhorro(String, Int)`). `NodeMethods` renders a method whose name equals its class without a return type.
 - Parents resolve to `implementation` when the target is a trait and `inheritance` otherwise, mirroring the frontend double dispatch. Only the first class parent becomes an inheritance edge. Parents not present in the pasted code are ignored.
 - A field typed as a known class emits an `association` edge; `List[X]` and friends emit `aggregation`.
 - Edge handle ids encode the relation: `-1` association, `-2` inheritance/implementation, `-3` aggregation.

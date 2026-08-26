@@ -75,7 +75,12 @@ export default function ImportScalaButton({ onImported, hasContent }: ImportScal
       <button
         type="button"
         className="navbar-import-trigger"
-        onClick={() => setOpen(true)}
+        onClick={(event) => {
+          // El diálogo marca #root como aria-hidden: si el disparador conserva
+          // el foco, el navegador avisa que se lo oculta a un lector de pantalla.
+          event.currentTarget.blur();
+          setOpen(true);
+        }}
         title="Crear el diagrama a partir de código Scala"
       >
         <FileCode2 size={15} strokeWidth={2} />

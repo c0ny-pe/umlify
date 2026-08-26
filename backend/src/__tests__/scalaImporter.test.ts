@@ -96,16 +96,49 @@ describe('parseScalaSource', () => {
     expect(decl.fields.map((f) => f.name)).toEqual(['texto']);
   });
 
-  it('reads constructor params as fields and keeps their visibility', () => {
+  it('only treats constructor params with val or var as state', () => {
     const [decl] = parseScalaSource(
       'class Persona(val nombre: String, private val rut: String, edad: Int)'
     );
 
+    // edad no lleva val ni var: firma el constructor, pero no es un atributo.
     expect(decl.fields).toEqual([
       { name: 'nombre', type: 'String', visibility: 'public', fromConstructor: true },
       { name: 'rut', type: 'String', visibility: 'private', fromConstructor: true },
-      { name: 'edad', type: 'Int', visibility: 'public', fromConstructor: true },
     ]);
+
+    expect(decl.constructors).toHaveLength(1);
+    expect(decl.constructors[0]).toMatchObject({ isPrimary: true });
+    expect(decl.constructors[0].params.map((p) => p.type)).toEqual(['String', 'String', 'Int']);
+  });
+
+  it('treats every case class param as state', () => {
+    const [decl] = parseScalaSource('case class Punto(x: Int, y: Int)');
+    expect(decl.fields.map((f) => f.name)).toEqual(['x', 'y']);
+  });
+
+  it('reads auxiliary constructors', () => {
+    const [decl] = parseScalaSource(`
+      class CuentaAhorro(nombre: String, saldoInicial: Int) {
+        def this(nombre: String) = this(nombre, 0)
+      }
+    `);
+
+    expect(decl.fields).toHaveLength(0);
+    expect(decl.constructors.map((c) => c.params.map((p) => p.type))).toEqual([
+      ['String', 'Int'],
+      ['String'],
+    ]);
+    expect(decl.constructors.map((c) => c.isPrimary)).toEqual([true, false]);
+  });
+
+  it('gives no constructor to a trait or to a class without a param list', () => {
+    const decls = parseScalaSource(`
+      trait Volador { def volar(): Unit }
+      class Simple { val x: Int = 1 }
+    `);
+
+    expect(decls.map((d) => d.constructors.length)).toEqual([0, 0]);
   });
 
   it('collects every parameter list and skips implicit ones', () => {
@@ -147,8 +180,8 @@ describe('parseScalaSource', () => {
       }
     `);
 
+    // inicial no es estado, pero sigue visible para inferir el tipo de saldo.
     expect(decl.fields.map((f) => [f.name, f.type])).toEqual([
-      ['inicial', 'Int'],
       ['saldo', 'Int'],
       ['activo', 'Boolean'],
       ['nombre', 'String'],
@@ -189,7 +222,39 @@ describe('buildDiagramFromScala', () => {
 
   it('inherits the return type when the child method omits it', () => {
     const corriente = findNode(buildDiagramFromScala(cuentas), 'CuentaCorriente');
-    expect(corriente.methods[0]).toMatchObject({ name: 'puedeGirar', codType: 'Boolean' });
+    const puedeGirar = corriente.methods.find((m) => m.name === 'puedeGirar');
+
+    expect(puedeGirar).toMatchObject({ codType: 'Boolean' });
+  });
+
+  it('shows each constructor as an operation named after the class', () => {
+    const diagram = buildDiagramFromScala(`
+      class CuentaAhorro(nombre: String, saldoInicial: Int) {
+        def this(nombre: String) = this(nombre, 0)
+        def puedeGirar(monto: Int): Boolean = true
+      }
+    `);
+
+    const cuenta = findNode(diagram, 'CuentaAhorro');
+
+    // nombre y saldoInicial no llevan val: firman el constructor, no el estado.
+    expect(cuenta.fields).toHaveLength(0);
+    expect(cuenta.methods.map((m) => [m.name, m.domType])).toEqual([
+      ['CuentaAhorro', ['String', 'Int']],
+      ['CuentaAhorro', ['String']],
+      ['puedeGirar', ['Int']],
+    ]);
+  });
+
+  it('keeps as attributes only the constructor params with val or var', () => {
+    const abstracta = findNode(buildDiagramFromScala(cuentas), 'AbstractCuenta');
+
+    expect(abstracta.fields.map((f) => f.name)).toEqual(['nombre', 'saldo']);
+    expect(abstracta.methods[0]).toMatchObject({
+      name: 'AbstractCuenta',
+      domType: ['String', 'Int'],
+      abstract: false,
+    });
   });
 
   it('creates an inheritance edge between two traits', () => {
@@ -252,13 +317,29 @@ describe('buildDiagramFromScala', () => {
 });
 
 describe('import then export', () => {
+  it('regenerates an auxiliary constructor as def this', () => {
+    const diagram = buildDiagramFromScala(`
+      class CuentaAhorro(nombre: String, saldoInicial: Int) {
+        def this(nombre: String) = this(nombre, 0)
+      }
+    `);
+    const code = generateScalaCode(parseDiagram(diagram));
+
+    expect(code).toContain('class CuentaAhorro(param1: String, param2: Int)');
+    expect(code).toContain('def this(param1: String) = this(???, ???)');
+  });
+
   it('regenerates the accounts hierarchy', () => {
     const diagram = buildDiagramFromScala(cuentas);
     const code = generateScalaCode(parseDiagram(diagram));
 
-    expect(code).toContain('abstract class AbstractCuenta(');
-    expect(code).toContain('class CuentaAhorro(');
+    // La cabecera vuelve a tener la firma del constructor importado.
+    expect(code).toContain('abstract class AbstractCuenta(param1: String, param2: Int)');
+    expect(code).toContain('class CuentaAhorro(param1: String, param2: Int)');
     expect(code).toContain('extends AbstractCuenta');
+    // El estado se mantiene como atributo y el constructor no se duplica.
+    expect(code).toContain('val nombre: String');
+    expect(code).not.toContain('def AbstractCuenta');
     // El método abstracto se mantiene sin implementación.
     expect(code).toContain('def puedeGirar(param1: Int): Boolean\n');
   });

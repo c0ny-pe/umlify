@@ -92,6 +92,20 @@ function resolveReturnTypes(decls: ScalaTypeDecl[]): void {
     });
 }
 
+/**
+ * Los constructores se muestran como operaciones con el nombre de la clase:
+ * CuentaAhorro(String, Int). El primario va primero y luego cada def this.
+ */
+function constructorMethods(decl: ScalaTypeDecl): PayloadMethod[] {
+    return decl.constructors.map((constructor) => ({
+        name: decl.name,
+        domType: constructor.params.map((param) => param.type),
+        codType: "",
+        visibility: constructor.visibility,
+        abstract: false,
+    }));
+}
+
 function toPayloadMethod(method: ScalaMethod): PayloadMethod {
     return {
         name: method.name,
@@ -208,7 +222,7 @@ export function buildDiagramFromDecls(rawDecls: ScalaTypeDecl[]): DiagramPayload
                 type: field.type,
                 visibility: field.visibility,
             })),
-            methods: decl.methods.map(toPayloadMethod),
+            methods: [...constructorMethods(decl), ...decl.methods.map(toPayloadMethod)],
             x: (column % COLUMNS) * COLUMN_WIDTH,
             y: depth * ROW_HEIGHT + Math.floor(column / COLUMNS) * ROW_HEIGHT,
         };

@@ -60,6 +60,48 @@ describe('generateScalaCode', () => {
     });
   });
 
+  describe('constructors', () => {
+    it('builds the header from the constructor operation and moves fields to the body', () => {
+      const code = generateScalaCode(
+        model([
+          cls({
+            id: '1',
+            name: 'Cuenta',
+            fields: [field('nombre', 'String')],
+            methods: [method('Cuenta', ['String', 'Int'])],
+          }),
+        ])
+      );
+
+      expect(code).toContain('class Cuenta(param1: String, param2: Int) {');
+      expect(code).toContain('val nombre: String = ???');
+      expect(code).not.toContain('def Cuenta');
+    });
+
+    it('emits auxiliary constructors as def this delegating to the primary', () => {
+      const code = generateScalaCode(
+        model([
+          cls({
+            id: '1',
+            name: 'Cuenta',
+            methods: [method('Cuenta', ['String', 'Int']), method('Cuenta', ['String'])],
+          }),
+        ])
+      );
+
+      expect(code).toContain('class Cuenta(param1: String, param2: Int) {');
+      expect(code).toContain('def this(param1: String) = this(???, ???)');
+    });
+
+    it('keeps fields as constructor params when there is no constructor operation', () => {
+      const code = generateScalaCode(
+        model([cls({ id: '1', name: 'Cuenta', fields: [field('nombre', 'String')] })])
+      );
+
+      expect(code).toContain('class Cuenta(val nombre: String) {}');
+    });
+  });
+
   describe('class fields', () => {
     it('puts public fields as constructor parameters', () => {
       const code = generateScalaCode(model([

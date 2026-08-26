@@ -17,6 +17,13 @@ const importerResponse = {
         { name: "saldo", type: "Int", visibility: "private" },
       ],
       methods: [
+        {
+          name: "AbstractCuenta",
+          domType: ["String", "Int"],
+          codType: "",
+          visibility: "public",
+          abstract: false,
+        },
         { name: "getSaldo", domType: [], codType: "Int", visibility: "public", abstract: false },
         { name: "setSaldo", domType: ["Int"], codType: "", visibility: "public", abstract: false },
         {
@@ -34,8 +41,16 @@ const importerResponse = {
       id: "2",
       name: "CuentaAhorro",
       classType: "concreteClass",
-      fields: [{ name: "nombre", type: "String", visibility: "public" }],
+      // Los parámetros del constructor sin val no son estado.
+      fields: [],
       methods: [
+        {
+          name: "CuentaAhorro",
+          domType: ["String", "Int"],
+          codType: "",
+          visibility: "public",
+          abstract: false,
+        },
         {
           name: "puedeGirar",
           domType: ["Int"],
@@ -66,6 +81,20 @@ describe("payload importado desde Scala", () => {
     expect(hydrated.nodes[0]).toBeInstanceOf(AbstractClass);
     expect(hydrated.nodes[1]).toBeInstanceOf(ConcreteClass);
     expect(hydrated.nextNodeId).toBe(3);
+  });
+
+  it("conserva los constructores como operaciones de la clase", () => {
+    const [abstracta, ahorro] = parseAndHydrateDiagram(importerResponse).nodes;
+
+    expect(abstracta.getMethods()[0]).toMatchObject({
+      name: "AbstractCuenta",
+      domType: ["String", "Int"],
+    });
+    expect(ahorro.getFields()).toHaveLength(0);
+    expect(ahorro.getMethods()[0]).toMatchObject({
+      name: "CuentaAhorro",
+      domType: ["String", "Int"],
+    });
   });
 
   it("conserva el método abstracto y el tipo de retorno vacío", () => {

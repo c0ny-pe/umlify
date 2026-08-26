@@ -73,6 +73,16 @@ const NodeMethods = (props: NodeMethodsProps) => {
     ).sort((a, b) => a.localeCompare(b));
   }, [allowedTypeNames]);
 
+  // Un método que se llama igual que su clase es un constructor: en UML se
+  // dibuja sin tipo de retorno.
+  const isConstructor = (method: MethodType): boolean =>
+    method.name.trim() === data.name.trim();
+
+  const drawSignature = (method: MethodType): string =>
+    `${method.name}(${method.domType.join(", ")})${
+      isConstructor(method) ? "" : `: ${method.codType ? method.codType : "Unit"}`
+    }`;
+
   return (
     <>
       <div className="method-container">
@@ -83,11 +93,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                 key={`method-${method.name}-${id}`}
                 style={method.abstract ? { fontStyle: "italic" } : {}}
               >
-                {drawVisibility(method.visibility)} {method.name}
-                {"("}
-                {method.domType.join(", ")}
-                {"): "}
-                {method.codType ? method.codType : "Unit"}
+                {drawVisibility(method.visibility)} {drawSignature(method)}
               </p>
             );
           })
@@ -129,11 +135,7 @@ const NodeMethods = (props: NodeMethodsProps) => {
                         id={`panel-methods-${i}-header`}
                       >
                         <Typography>
-                          {drawVisibility(method.visibility)} {method.name}
-                          {"("}
-                          {method.domType.join(", ")}
-                          {"): "}
-                          {method.codType ? method.codType : "Unit"}
+                          {drawVisibility(method.visibility)} {drawSignature(method)}
                         </Typography>
                       </AccordionSummary>
                     </div>
