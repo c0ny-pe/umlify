@@ -876,16 +876,20 @@ function AppContent() {
         }
         case "2":
           try {
-            // Validar que no haya herencia múltiple
-            const existingInheritanceEdges = ctx.edges.filter(
-              (edge) => edge.source === sourceId && edge.type === "inheritance"
-            );
-            if (existingInheritanceEdges.length > 0) {
-              throw new Error("Una clase solo puede extender de una única clase");
+            const relation = defineEdgeType(sourceNode, targetNode);
+
+            // Solo el extends de una clase es excluyente: un trait se mezcla
+            // con with, así que pueden convivir varias implementaciones.
+            if (relation === "inheritance") {
+              const existingInheritanceEdges = ctx.edges.filter(
+                (edge) => edge.source === sourceId && edge.type === "inheritance"
+              );
+              if (existingInheritanceEdges.length > 0) {
+                throw new Error("Una clase solo puede extender de una única clase");
+              }
             }
 
-            const inheritance = defineEdgeType(sourceNode, targetNode);
-            edgeTypes.push({ type: inheritance, id: 2 });
+            edgeTypes.push({ type: relation, id: 2 });
           } catch (error) {
             ctx.setToast({
               message: error instanceof Error ? error.message : "No se pudo crear la herencia",
